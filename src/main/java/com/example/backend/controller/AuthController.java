@@ -1,5 +1,8 @@
 package com.example.backend.controller;
 
+import org.springframework.web.bind.annotation.CrossOrigin;
+import com.example.backend.dto.AuthResponse;
+import com.example.backend.dto.LoginRequest;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -10,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
+@CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -24,6 +28,14 @@ public class AuthController {
     public ResponseEntity<String> register(@RequestBody RegisterRequest request) {
 
         String response = userService.registerUser(request);
+
+        return ResponseEntity.ok(response);
+    }
+    @PostMapping("/login")
+    public ResponseEntity<AuthResponse> login(
+            @RequestBody LoginRequest request) {
+
+        AuthResponse response = userService.loginUser(request);
 
         return ResponseEntity.ok(response);
     }
