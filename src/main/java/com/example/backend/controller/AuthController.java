@@ -1,7 +1,11 @@
 package com.example.backend.controller;
 
+import org.springframework.web.bind.annotation.CrossOrigin;
 import com.example.backend.dto.AuthResponse;
 import com.example.backend.dto.LoginRequest;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.example.backend.dto.RegisterRequest;
 import com.example.backend.service.UserService;
 import jakarta.validation.Valid;
@@ -12,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
