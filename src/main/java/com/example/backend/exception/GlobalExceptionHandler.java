@@ -51,11 +51,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
+    // --- Method Security (Access Denied) ---
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleAccessDenied(org.springframework.security.access.AccessDeniedException ex) {
+        return buildResponse(HttpStatus.FORBIDDEN, "You are not authorized to access this endpoint.");
+    }
+
     // --- Catch-all for unexpected errors ---
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneralException(Exception ex) {
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred.");
     }
+
 
     // --- Helper method for simple error responses ---
     private ResponseEntity<Map<String, Object>> buildResponse(HttpStatus status, String message) {
