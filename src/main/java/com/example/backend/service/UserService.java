@@ -15,7 +15,6 @@ import com.example.backend.entity.Role;
 import com.example.backend.entity.User;
 import com.example.backend.exception.EmailAlreadyExistsException;
 import com.example.backend.repository.UserRepository;
-import com.example.backend.security.JwtService;
 
 @Service
 public class UserService {
