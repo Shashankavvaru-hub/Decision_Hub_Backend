@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import com.example.backend.dto.AuthResponse;
 import com.example.backend.dto.LoginRequest;
 import com.example.backend.dto.RegisterRequest;
+import com.example.backend.dto.UserDto;
 import com.example.backend.entity.Role;
 import com.example.backend.entity.User;
 import com.example.backend.exception.EmailAlreadyExistsException;
@@ -67,5 +68,25 @@ public class UserService {
 
         String token = jwtService.generateToken(user);
         return new AuthResponse(token);
+    }
+
+    public java.util.List<UserDto> getAllUsers() {
+        return userRepository.findAll().stream()
+                .map(this::convertToDto)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    public UserDto convertToDto(User user) {
+        return UserDto.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .fullName(user.getFullName())
+                .profilePicture(user.getProfilePicture())
+                .role(user.getRole())
+                .interests(user.getInterests())
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
+                .build();
     }
 }
