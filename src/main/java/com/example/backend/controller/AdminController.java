@@ -2,6 +2,7 @@ package com.example.backend.controller;
 
 import java.util.List;
 import com.example.backend.dto.UserDto;
+import com.example.backend.service.CommunityService;
 import com.example.backend.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -12,9 +13,11 @@ import org.springframework.web.bind.annotation.*;
 public class AdminController {
 
     private final UserService userService;
+    private final CommunityService communityService;
 
-    public AdminController(UserService userService) {
+    public AdminController(UserService userService, CommunityService communityService) {
         this.userService = userService;
+        this.communityService = communityService;
     }
 
     @GetMapping("/users")
@@ -43,7 +46,8 @@ public class AdminController {
 
     @DeleteMapping("/communities/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> deleteCommunity(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteCommunity(@PathVariable Long id, @org.springframework.security.core.annotation.AuthenticationPrincipal com.example.backend.entity.User user) {
+        communityService.deleteCommunity(id, user);
         return ResponseEntity.ok().build();
     }
 
