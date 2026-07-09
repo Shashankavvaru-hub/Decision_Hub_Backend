@@ -4,6 +4,14 @@ public class DecisionRequest {
 
     private String title;
     private String description;
+    private String category;
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
 
     public DecisionRequest() {
     }

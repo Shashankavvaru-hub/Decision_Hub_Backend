@@ -2,18 +2,15 @@ package com.example.backend.controller;
 
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
 
 import com.example.backend.dto.DecisionRequest;
 import com.example.backend.entity.Decision;
+import com.example.backend.entity.User;
 import com.example.backend.service.DecisionService;
 
 @RestController
@@ -27,15 +24,21 @@ public class DecisionController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<Decision> createDecision(
-            @RequestBody DecisionRequest request) {
+            @RequestBody DecisionRequest request,
+            @AuthenticationPrincipal User user) {
 
-        Decision decision = decisionService.createDecision(request);
+        Decision decision =
+                decisionService.createDecision(request, user);
 
-        return ResponseEntity.ok(decision);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(decision);
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<List<Decision>> getAllDecisions() {
 
         return ResponseEntity.ok(
@@ -43,6 +46,7 @@ public class DecisionController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<Decision> getDecisionById(
             @PathVariable Long id) {
 
@@ -51,19 +55,26 @@ public class DecisionController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<Decision> updateDecision(
             @PathVariable Long id,
-            @RequestBody DecisionRequest request) {
+            @RequestBody DecisionRequest request,
+            @AuthenticationPrincipal User user) {
 
         return ResponseEntity.ok(
-                decisionService.updateDecision(id, request));
+                decisionService.updateDecision(
+                        id,
+                        request,
+                        user));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<String> deleteDecision(
-            @PathVariable Long id) {
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
 
-        decisionService.deleteDecision(id);
+        decisionService.deleteDecision(id, user);
 
         return ResponseEntity.ok(
                 "Decision deleted successfully!");
