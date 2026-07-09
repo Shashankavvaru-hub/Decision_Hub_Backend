@@ -6,14 +6,15 @@ import com.example.backend.entity.Community;
 import com.example.backend.entity.CommunityMember;
 import com.example.backend.entity.Role;
 import com.example.backend.entity.User;
+import com.example.backend.exception.BadRequestException;
+import com.example.backend.exception.ResourceAlreadyExistsException;
+import com.example.backend.exception.ResourceNotFoundException;
+import com.example.backend.exception.UnauthorizedActionException;
 import com.example.backend.repository.CommunityMemberRepository;
 import com.example.backend.repository.CommunityRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -27,6 +28,10 @@ public class CommunityService {
 
     @Transactional
     public CommunityDto createCommunity(CreateCommunityRequest request, User creator) {
+        if (communityRepository.existsByName(request.getName())) {
+            throw new ResourceAlreadyExistsException("Community name already exists.");
+        }
+
         Community community = Community.builder()
                 .name(request.getName())
                 .category(request.getCategory())
@@ -66,7 +71,7 @@ public class CommunityService {
         Community community = getCommunityEntity(communityId);
 
         if (communityMemberRepository.existsByCommunityIdAndUserId(community.getId(), user.getId())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User is already a member of this community");
+            throw new ResourceAlreadyExistsException("User is already a member of this community.");
         }
 
         CommunityMember member = CommunityMember.builder()
@@ -85,17 +90,20 @@ public class CommunityService {
     public void removeMember(Long communityId, Long userId, User requester) {
         Community community = getCommunityEntity(communityId);
 
-        // Check if requester is moderator or the user themselves or an admin
         boolean isModerator = community.getModerator().getId().equals(requester.getId());
         boolean isSelf = requester.getId().equals(userId);
-        boolean isAdmin = requester.getRole() == Role.ADMIN;
+        boolean targetIsModerator = community.getModerator().getId().equals(userId);
 
-        if (!isModerator && !isSelf && !isAdmin) {
-            throw new AccessDeniedException("You do not have permission to remove this member.");
+        if (!isModerator && !isSelf) {
+            throw new UnauthorizedActionException("You are not authorized to remove this member.");
+        }
+
+        if (targetIsModerator) {
+            throw new BadRequestException("Community owner cannot be removed or leave without transferring ownership or deleting the community.");
         }
 
         CommunityMember member = communityMemberRepository.findByCommunityIdAndUserId(communityId, userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Member not found in community"));
+                .orElseThrow(() -> new ResourceNotFoundException("User is not a member of this community."));
 
         communityMemberRepository.delete(member);
 
@@ -111,7 +119,7 @@ public class CommunityService {
         boolean isAdmin = requester.getRole() == Role.ADMIN;
 
         if (!isModerator && !isAdmin) {
-            throw new AccessDeniedException("Only the community moderator or an admin can delete the community.");
+            throw new UnauthorizedActionException("Only the community owner or admin can delete the community.");
         }
 
         communityRepository.delete(community);
@@ -119,7 +127,7 @@ public class CommunityService {
 
     private Community getCommunityEntity(Long id) {
         return communityRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Community not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Community not found."));
     }
 
     private CommunityDto convertToDto(Community community) {
