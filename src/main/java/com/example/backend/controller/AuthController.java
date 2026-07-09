@@ -1,6 +1,7 @@
 package com.example.backend.controller;
 
 import org.springframework.web.bind.annotation.CrossOrigin;
+import com.example.backend.dto.ApiResponse;
 import com.example.backend.dto.AuthResponse;
 import com.example.backend.dto.LoginRequest;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,14 +27,26 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
-        AuthResponse response = userService.registerUser(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    public ResponseEntity<ApiResponse<AuthResponse>> register(@Valid @RequestBody RegisterRequest request) {
+        AuthResponse authResponse = userService.registerUser(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+            ApiResponse.<AuthResponse>builder()
+                .success(true)
+                .message("User registered successfully.")
+                .data(authResponse)
+                .build()
+        );
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        AuthResponse response = userService.loginUser(request);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
+        AuthResponse authResponse = userService.loginUser(request);
+        return ResponseEntity.ok(
+            ApiResponse.<AuthResponse>builder()
+                .success(true)
+                .message("Login successful.")
+                .data(authResponse)
+                .build()
+        );
     }
 }

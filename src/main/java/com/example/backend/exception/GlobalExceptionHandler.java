@@ -1,5 +1,6 @@
 package com.example.backend.exception;
 
+import com.example.backend.dto.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -9,68 +10,68 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
-
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // --- Duplicate email on registration ---
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ApiResponse<?>> handleResourceNotFound(ResourceNotFoundException ex) {
+        return buildErrorResponse(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(ResourceAlreadyExistsException.class)
+    public ResponseEntity<ApiResponse<?>> handleResourceAlreadyExists(ResourceAlreadyExistsException ex) {
+        return buildErrorResponse(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(UnauthorizedActionException.class)
+    public ResponseEntity<ApiResponse<?>> handleUnauthorizedAction(UnauthorizedActionException ex) {
+        return buildErrorResponse(HttpStatus.FORBIDDEN, ex.getMessage());
+    }
+
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ApiResponse<?>> handleBadRequest(BadRequestException ex) {
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
     @ExceptionHandler(EmailAlreadyExistsException.class)
-    public ResponseEntity<Map<String, Object>> handleEmailAlreadyExists(EmailAlreadyExistsException ex) {
-        return buildResponse(HttpStatus.CONFLICT, ex.getMessage());
+    public ResponseEntity<ApiResponse<?>> handleEmailAlreadyExists(EmailAlreadyExistsException ex) {
+        return buildErrorResponse(HttpStatus.CONFLICT, ex.getMessage());
     }
 
-    // --- Invalid JWT or wrong credentials on login ---
     @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<Map<String, Object>> handleBadCredentials(BadCredentialsException ex) {
-        return buildResponse(HttpStatus.UNAUTHORIZED, "Invalid email or password.");
+    public ResponseEntity<ApiResponse<?>> handleBadCredentials(BadCredentialsException ex) {
+        return buildErrorResponse(HttpStatus.UNAUTHORIZED, "Invalid email or password.");
     }
 
-    // --- User not found in UserDetailsService ---
     @ExceptionHandler(UsernameNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleUsernameNotFound(UsernameNotFoundException ex) {
-        return buildResponse(HttpStatus.UNAUTHORIZED, "Invalid email or password.");
+    public ResponseEntity<ApiResponse<?>> handleUsernameNotFound(UsernameNotFoundException ex) {
+        return buildErrorResponse(HttpStatus.UNAUTHORIZED, "Invalid email or password.");
     }
 
-    // --- @Valid DTO validation failures ---
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, Object>> handleValidationErrors(MethodArgumentNotValidException ex) {
-        Map<String, String> fieldErrors = new HashMap<>();
-        for (FieldError error : ex.getBindingResult().getFieldErrors()) {
-            fieldErrors.put(error.getField(), error.getDefaultMessage());
-        }
-
-        Map<String, Object> body = new HashMap<>();
-        body.put("timestamp", LocalDateTime.now().toString());
-        body.put("status", HttpStatus.BAD_REQUEST.value());
-        body.put("error", "Validation Failed");
-        body.put("details", fieldErrors);
-
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    public ResponseEntity<ApiResponse<?>> handleValidationErrors(MethodArgumentNotValidException ex) {
+        FieldError error = ex.getBindingResult().getFieldErrors().stream().findFirst().orElse(null);
+        String message = error != null ? error.getDefaultMessage() : "Validation Failed";
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, message);
     }
 
-    // --- Method Security (Access Denied) ---
     @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
-    public ResponseEntity<Map<String, Object>> handleAccessDenied(org.springframework.security.access.AccessDeniedException ex) {
-        return buildResponse(HttpStatus.FORBIDDEN, "You are not authorized to access this endpoint.");
+    public ResponseEntity<ApiResponse<?>> handleAccessDenied(org.springframework.security.access.AccessDeniedException ex) {
+        return buildErrorResponse(HttpStatus.FORBIDDEN, "You are not authorized to access this endpoint.");
     }
 
-    // --- Catch-all for unexpected errors ---
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<ApiResponse<?>> handleResponseStatusException(org.springframework.web.server.ResponseStatusException ex) {
+        return buildErrorResponse(org.springframework.http.HttpStatus.valueOf(ex.getStatusCode().value()), ex.getReason());
+    }
+
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> handleGeneralException(Exception ex) {
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred.");
+    public ResponseEntity<ApiResponse<?>> handleGeneralException(Exception ex) {
+        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred.");
     }
 
-
-    // --- Helper method for simple error responses ---
-    private ResponseEntity<Map<String, Object>> buildResponse(HttpStatus status, String message) {
-        Map<String, Object> body = new HashMap<>();
-        body.put("timestamp", LocalDateTime.now().toString());
-        body.put("status", status.value());
-        body.put("error", status.getReasonPhrase());
-        body.put("message", message);
-        return ResponseEntity.status(status).body(body);
+    private ResponseEntity<ApiResponse<?>> buildErrorResponse(HttpStatus status, String message) {
+        ApiResponse<?> response = new ApiResponse<>(false, message);
+        return ResponseEntity.status(status).body(response);
     }
 }

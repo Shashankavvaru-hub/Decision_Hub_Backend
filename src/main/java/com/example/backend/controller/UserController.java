@@ -1,5 +1,6 @@
 package com.example.backend.controller;
 
+import com.example.backend.dto.ApiResponse;
 import com.example.backend.dto.UserDto;
 import com.example.backend.entity.User;
 import com.example.backend.service.UserService;
@@ -22,7 +23,14 @@ public class UserController {
 
     @GetMapping("/me")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<UserDto> getCurrentUser(@AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(userService.convertToDto(user));
+    public ResponseEntity<ApiResponse<UserDto>> getCurrentUser(@AuthenticationPrincipal User user) {
+        UserDto userDto = userService.convertToDto(user);
+        return ResponseEntity.ok(
+            ApiResponse.<UserDto>builder()
+                .success(true)
+                .message("User details fetched successfully.")
+                .data(userDto)
+                .build()
+        );
     }
 }
