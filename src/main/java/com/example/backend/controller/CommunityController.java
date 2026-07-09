@@ -1,38 +1,84 @@
 package com.example.backend.controller;
 
+import com.example.backend.dto.ApiResponse;
+import com.example.backend.dto.CommunityDto;
+import com.example.backend.dto.CreateCommunityRequest;
+import com.example.backend.entity.User;
+import com.example.backend.service.CommunityService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/communities")
+@RequiredArgsConstructor
 public class CommunityController {
+
+    private final CommunityService communityService;
 
     @PostMapping
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<?> createCommunity() {
-        return ResponseEntity.ok().build();
+    public ResponseEntity<ApiResponse<CommunityDto>> createCommunity(@Valid @RequestBody CreateCommunityRequest request, 
+                                                        @AuthenticationPrincipal User user) {
+        CommunityDto community = communityService.createCommunity(request, user);
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+            ApiResponse.<CommunityDto>builder()
+                .success(true)
+                .message("Community created successfully.")
+                .data(community)
+                .build()
+        );
     }
 
     @GetMapping
-    public ResponseEntity<?> getAllCommunities() {
-        return ResponseEntity.ok().build();
+    public ResponseEntity<ApiResponse<List<CommunityDto>>> getAllCommunities() {
+        List<CommunityDto> communities = communityService.getAllCommunities();
+        String message = communities.isEmpty() ? "No communities found." : "Communities fetched successfully.";
+        return ResponseEntity.ok(
+            ApiResponse.<List<CommunityDto>>builder()
+                .success(true)
+                .message(message)
+                .data(communities)
+                .build()
+        );
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getCommunityById(@PathVariable Long id) {
-        return ResponseEntity.ok().build();
+    public ResponseEntity<ApiResponse<CommunityDto>> getCommunityById(@PathVariable Long id) {
+        CommunityDto community = communityService.getCommunityById(id);
+        return ResponseEntity.ok(
+            ApiResponse.<CommunityDto>builder()
+                .success(true)
+                .message("Community fetched successfully.")
+                .data(community)
+                .build()
+        );
     }
 
     @PostMapping("/{id}/members")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<?> joinCommunity(@PathVariable Long id) {
-        return ResponseEntity.ok().build();
+    public ResponseEntity<ApiResponse<?>> joinCommunity(@PathVariable Long id, @AuthenticationPrincipal User user) {
+        communityService.joinCommunity(id, user);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Joined community successfully."));
     }
 
     @DeleteMapping("/{id}/members/{userId}")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<?> removeMember(@PathVariable Long id, @PathVariable Long userId) {
-        return ResponseEntity.ok().build();
+    public ResponseEntity<ApiResponse<?>> removeMember(@PathVariable Long id, @PathVariable Long userId, @AuthenticationPrincipal User user) {
+        communityService.removeMember(id, userId, user);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Member removed successfully."));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<?>> deleteCommunity(@PathVariable Long id, @AuthenticationPrincipal User user) {
+        communityService.deleteCommunity(id, user);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Community deleted successfully."));
     }
 }
