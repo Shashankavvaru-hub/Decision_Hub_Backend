@@ -33,4 +33,16 @@ public class UserController {
                 .build()
         );
     }
+
+    @GetMapping("/count")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Long>> countUsers() {
+        return ResponseEntity.ok(
+            ApiResponse.<Long>builder()
+                .success(true)
+                .message("User count fetched successfully.")
+                .data(userService.countUsers())
+                .build()
+        );
+    }
 }

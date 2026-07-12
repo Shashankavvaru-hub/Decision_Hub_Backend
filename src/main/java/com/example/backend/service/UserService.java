@@ -89,4 +89,15 @@ public class UserService {
                 .updatedAt(user.getUpdatedAt())
                 .build();
     }
+
+    public void deleteUser(Long id) {
+        if (!userRepository.existsById(id)) {
+            throw new com.example.backend.exception.ResourceNotFoundException("User not found.");
+        }
+        userRepository.deleteById(id);
+    }
+
+    public long countUsers() {
+        return userRepository.count();
+    }
 }
