@@ -142,4 +142,9 @@ public class CommunityService {
                 .createdAt(community.getCreatedAt())
                 .build();
     }
+
+    @Transactional(readOnly = true)
+    public long countCommunities() {
+        return communityRepository.count();
+    }
 }

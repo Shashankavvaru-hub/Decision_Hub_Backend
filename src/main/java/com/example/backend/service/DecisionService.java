@@ -2,7 +2,8 @@ package com.example.backend.service;
 
 import java.util.List;
 
-import org.springframework.security.access.AccessDeniedException;
+import com.example.backend.exception.ResourceNotFoundException;
+import com.example.backend.exception.UnauthorizedActionException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,7 +47,7 @@ public class DecisionService {
 
         return decisionRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException("Decision not found!"));
+                        new ResourceNotFoundException("Decision not found!"));
     }
 
     @Transactional
@@ -62,7 +63,7 @@ public class DecisionService {
                         .equals(requester.getId());
 
         if (!isOwner) {
-            throw new AccessDeniedException(
+            throw new UnauthorizedActionException(
                     "Only the decision owner can update this decision.");
         }
 
@@ -88,10 +89,15 @@ public class DecisionService {
                 requester.getRole() == Role.ADMIN;
 
         if (!isOwner && !isAdmin) {
-            throw new AccessDeniedException(
+            throw new UnauthorizedActionException(
                     "Only the decision owner or admin can delete this decision.");
         }
 
         decisionRepository.delete(decision);
+    }
+
+    @Transactional(readOnly = true)
+    public long countDecisions() {
+        return decisionRepository.count();
     }
 }

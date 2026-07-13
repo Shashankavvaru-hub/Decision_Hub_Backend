@@ -81,4 +81,16 @@ public class CommunityController {
         communityService.deleteCommunity(id, user);
         return ResponseEntity.ok(new ApiResponse<>(true, "Community deleted successfully."));
     }
+
+    @GetMapping("/count")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Long>> countCommunities() {
+        return ResponseEntity.ok(
+            ApiResponse.<Long>builder()
+                .success(true)
+                .message("Community count fetched successfully.")
+                .data(communityService.countCommunities())
+                .build()
+        );
+    }
 }
