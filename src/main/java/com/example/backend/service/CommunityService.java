@@ -137,7 +137,7 @@ public class CommunityService {
                 .category(community.getCategory())
                 .description(community.getDescription())
                 .moderatorId(community.getModerator().getId())
-                .moderatorUsername(community.getModerator().getUsername())
+                .moderatorUsername(community.getModerator().getActualUsername())
                 .memberCount(community.getMemberCount())
                 .createdAt(community.getCreatedAt())
                 .build();
