@@ -5,6 +5,16 @@ public class DecisionRequest {
     private String title;
     private String description;
     private String category;
+    private java.util.List<OptionRequest> options;
+
+    public java.util.List<OptionRequest> getOptions() {
+        return options;
+    }
+
+    public void setOptions(java.util.List<OptionRequest> options) {
+        this.options = options;
+    }
+
     public String getCategory() {
         return category;
     }
