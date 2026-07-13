@@ -1,6 +1,5 @@
 package com.example.backend.controller;
 
-import org.springframework.web.bind.annotation.CrossOrigin;
 import com.example.backend.dto.ApiResponse;
 import com.example.backend.dto.AuthResponse;
 import com.example.backend.dto.LoginRequest;
