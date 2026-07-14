@@ -22,7 +22,7 @@ public class UserController {
     }
 
     @GetMapping("/me")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<UserDto>> getCurrentUser(@AuthenticationPrincipal User user) {
         UserDto userDto = userService.convertToDto(user);
         return ResponseEntity.ok(
