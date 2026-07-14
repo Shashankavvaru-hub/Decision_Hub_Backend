@@ -10,32 +10,37 @@ import org.springframework.web.bind.annotation.*;
 
 import com.example.backend.dto.ApiResponse;
 import com.example.backend.dto.DecisionRequest;
-import com.example.backend.entity.Decision;
+import com.example.backend.dto.DecisionDto;
+import com.example.backend.dto.VoteDto;
+import com.example.backend.dto.VoteRequest;
 import com.example.backend.entity.User;
 import com.example.backend.service.DecisionService;
+import com.example.backend.service.VoteService;
 
 @RestController
 @RequestMapping("/api/decisions")
 public class DecisionController {
 
     private final DecisionService decisionService;
+    private final VoteService voteService;
 
-    public DecisionController(DecisionService decisionService) {
+    public DecisionController(DecisionService decisionService, VoteService voteService) {
         this.decisionService = decisionService;
+        this.voteService = voteService;
     }
 
     @PostMapping
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ApiResponse<Decision>> createDecision(
+    public ResponseEntity<ApiResponse<DecisionDto>> createDecision(
             @RequestBody DecisionRequest request,
             @AuthenticationPrincipal User user) {
 
-        Decision decision =
+        DecisionDto decision =
                 decisionService.createDecision(request, user);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(ApiResponse.<Decision>builder()
+                .body(ApiResponse.<DecisionDto>builder()
                         .success(true)
                         .message("Decision created successfully.")
                         .data(decision)
@@ -44,12 +49,12 @@ public class DecisionController {
 
     @GetMapping
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ApiResponse<List<Decision>>> getAllDecisions() {
+    public ResponseEntity<ApiResponse<List<DecisionDto>>> getAllDecisions() {
 
-        List<Decision> decisions = decisionService.getAllDecisions();
+        List<DecisionDto> decisions = decisionService.getAllDecisions();
         String message = decisions.isEmpty() ? "No decisions found." : "Decisions fetched successfully.";
 
-        return ResponseEntity.ok(ApiResponse.<List<Decision>>builder()
+        return ResponseEntity.ok(ApiResponse.<List<DecisionDto>>builder()
                 .success(true)
                 .message(message)
                 .data(decisions)
@@ -58,12 +63,12 @@ public class DecisionController {
 
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ApiResponse<Decision>> getDecisionById(
+    public ResponseEntity<ApiResponse<DecisionDto>> getDecisionById(
             @PathVariable Long id) {
 
-        Decision decision = decisionService.getDecisionById(id);
+        DecisionDto decision = decisionService.getDecisionById(id);
 
-        return ResponseEntity.ok(ApiResponse.<Decision>builder()
+        return ResponseEntity.ok(ApiResponse.<DecisionDto>builder()
                 .success(true)
                 .message("Decision fetched successfully.")
                 .data(decision)
@@ -72,17 +77,17 @@ public class DecisionController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ApiResponse<Decision>> updateDecision(
+    public ResponseEntity<ApiResponse<DecisionDto>> updateDecision(
             @PathVariable Long id,
             @RequestBody DecisionRequest request,
             @AuthenticationPrincipal User user) {
 
-        Decision decision = decisionService.updateDecision(
+        DecisionDto decision = decisionService.updateDecision(
                         id,
                         request,
                         user);
 
-        return ResponseEntity.ok(ApiResponse.<Decision>builder()
+        return ResponseEntity.ok(ApiResponse.<DecisionDto>builder()
                 .success(true)
                 .message("Decision updated successfully.")
                 .data(decision)
@@ -111,5 +116,21 @@ public class DecisionController {
                 .data(decisionService.countDecisions())
                 .build()
         );
+    }
+
+    @PostMapping("/{id}/votes")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<ApiResponse<VoteDto>> castVote(
+            @PathVariable Long id,
+            @RequestBody VoteRequest request,
+            @AuthenticationPrincipal User user) {
+
+        VoteDto vote = voteService.castVote(id, request, user);
+
+        return ResponseEntity.ok(ApiResponse.<VoteDto>builder()
+                .success(true)
+                .message("Vote cast successfully.")
+                .data(vote)
+                .build());
     }
 }
