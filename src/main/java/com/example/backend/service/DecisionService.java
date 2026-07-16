@@ -54,8 +54,10 @@ public class DecisionService {
             Community community = communityRepository.findById(request.getCommunityId())
                     .orElseThrow(() -> new ResourceNotFoundException("Community not found."));
 
-            if (!community.getModerator().getId().equals(user.getId()) && user.getRole() != Role.ADMIN) {
-                throw new UnauthorizedActionException("Only the moderator can create a decision for this community.");
+            boolean isModerator = community.getModerator().getId().equals(user.getId());
+            boolean isMember = communityMemberRepository.existsByCommunityIdAndUserId(community.getId(), user.getId());
+            if (!isModerator && !isMember && user.getRole() != Role.ADMIN) {
+                throw new UnauthorizedActionException("Only members of the community can create a decision for this community.");
             }
             decision.setCommunity(community);
         }
