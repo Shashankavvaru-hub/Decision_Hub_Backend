@@ -1,8 +1,10 @@
 package com.example.backend.service;
 
 import com.example.backend.dto.CommunityDto;
+import com.example.backend.dto.CommunityJoinRequestDto;
 import com.example.backend.dto.CreateCommunityRequest;
 import com.example.backend.entity.Community;
+import com.example.backend.entity.CommunityJoinRequest;
 import com.example.backend.entity.CommunityMember;
 import com.example.backend.entity.Role;
 import com.example.backend.entity.User;
@@ -10,6 +12,7 @@ import com.example.backend.exception.BadRequestException;
 import com.example.backend.exception.ResourceAlreadyExistsException;
 import com.example.backend.exception.ResourceNotFoundException;
 import com.example.backend.exception.UnauthorizedActionException;
+import com.example.backend.repository.CommunityJoinRequestRepository;
 import com.example.backend.repository.CommunityMemberRepository;
 import com.example.backend.repository.CommunityRepository;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +28,7 @@ public class CommunityService {
 
     private final CommunityRepository communityRepository;
     private final CommunityMemberRepository communityMemberRepository;
+    private final CommunityJoinRequestRepository communityJoinRequestRepository;
 
     @Transactional
     public CommunityDto createCommunity(CreateCommunityRequest request, User creator) {
@@ -67,23 +71,94 @@ public class CommunityService {
     }
 
     @Transactional
-    public void joinCommunity(Long communityId, User user) {
+    public String joinCommunity(Long communityId, User user) {
         Community community = getCommunityEntity(communityId);
 
         if (communityMemberRepository.existsByCommunityIdAndUserId(community.getId(), user.getId())) {
             throw new ResourceAlreadyExistsException("User is already a member of this community.");
         }
 
-        CommunityMember member = CommunityMember.builder()
+        if (user.getRole() == Role.ADMIN) {
+            CommunityMember member = CommunityMember.builder()
+                    .community(community)
+                    .user(user)
+                    .memberRole("MEMBER")
+                    .build();
+            communityMemberRepository.save(member);
+            community.setMemberCount(community.getMemberCount() + 1);
+            communityRepository.save(community);
+            return "Joined community successfully as ADMIN.";
+        }
+
+        if (communityJoinRequestRepository.existsByCommunityIdAndUserIdAndStatus(community.getId(), user.getId(), "PENDING")) {
+            throw new ResourceAlreadyExistsException("A pending join request already exists.");
+        }
+
+        CommunityJoinRequest request = CommunityJoinRequest.builder()
                 .community(community)
                 .user(user)
-                .memberRole("MEMBER")
+                .status("PENDING")
                 .build();
-
-        communityMemberRepository.save(member);
+        communityJoinRequestRepository.save(request);
         
-        community.setMemberCount(community.getMemberCount() + 1);
-        communityRepository.save(community);
+        return "Join request sent successfully. Pending moderator approval.";
+    }
+
+    @Transactional(readOnly = true)
+    public List<CommunityJoinRequestDto> getPendingRequests(Long communityId, User requester) {
+        Community community = getCommunityEntity(communityId);
+
+        if (!community.getModerator().getId().equals(requester.getId()) && requester.getRole() != Role.ADMIN) {
+            throw new UnauthorizedActionException("Only the moderator can view join requests.");
+        }
+
+        return communityJoinRequestRepository.findByCommunityIdAndStatus(communityId, "PENDING")
+                .stream().map(req -> CommunityJoinRequestDto.builder()
+                        .id(req.getId())
+                        .communityId(req.getCommunity().getId())
+                        .userId(req.getUser().getId())
+                        .username(req.getUser().getActualUsername())
+                        .status(req.getStatus())
+                        .createdAt(req.getCreatedAt())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public String handleJoinRequest(Long requestId, boolean accept, User requester) {
+        CommunityJoinRequest request = communityJoinRequestRepository.findById(requestId)
+                .orElseThrow(() -> new ResourceNotFoundException("Join request not found."));
+
+        Community community = request.getCommunity();
+
+        if (!community.getModerator().getId().equals(requester.getId()) && requester.getRole() != Role.ADMIN) {
+            throw new UnauthorizedActionException("Only the moderator can handle join requests.");
+        }
+
+        if (!request.getStatus().equals("PENDING")) {
+            throw new BadRequestException("Request is already " + request.getStatus());
+        }
+
+        if (accept) {
+            request.setStatus("APPROVED");
+            communityJoinRequestRepository.save(request);
+
+            if (!communityMemberRepository.existsByCommunityIdAndUserId(community.getId(), request.getUser().getId())) {
+                CommunityMember member = CommunityMember.builder()
+                        .community(community)
+                        .user(request.getUser())
+                        .memberRole("MEMBER")
+                        .build();
+                communityMemberRepository.save(member);
+                community.setMemberCount(community.getMemberCount() + 1);
+                communityRepository.save(community);
+            }
+            return "Join request approved.";
+        } else {
+            request.setStatus("REJECTED");
+            communityJoinRequestRepository.save(request);
+            return "Join request rejected.";
+        }
     }
 
     @Transactional

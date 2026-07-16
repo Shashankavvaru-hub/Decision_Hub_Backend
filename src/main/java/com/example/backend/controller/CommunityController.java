@@ -2,7 +2,9 @@ package com.example.backend.controller;
 
 import com.example.backend.dto.ApiResponse;
 import com.example.backend.dto.CommunityDto;
+import com.example.backend.dto.CommunityJoinRequestDto;
 import com.example.backend.dto.CreateCommunityRequest;
+import com.example.backend.dto.HandleJoinRequestDto;
 import com.example.backend.entity.User;
 import com.example.backend.service.CommunityService;
 import jakarta.validation.Valid;
@@ -61,11 +63,29 @@ public class CommunityController {
         );
     }
 
-    @PostMapping("/{id}/members")
-    @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ApiResponse<?>> joinCommunity(@PathVariable Long id, @AuthenticationPrincipal User user) {
-        communityService.joinCommunity(id, user);
-        return ResponseEntity.ok(new ApiResponse<>(true, "Joined community successfully."));
+    @PostMapping("/{id}/join")
+    public ResponseEntity<ApiResponse<String>> joinCommunity(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+        String result = communityService.joinCommunity(id, user);
+        return ResponseEntity.ok(ApiResponse.<String>builder().success(true).message("Join request processed.").data(result).build());
+    }
+
+    @GetMapping("/{id}/requests")
+    public ResponseEntity<ApiResponse<List<CommunityJoinRequestDto>>> getPendingRequests(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+        List<CommunityJoinRequestDto> requests = communityService.getPendingRequests(id, user);
+        return ResponseEntity.ok(ApiResponse.<List<CommunityJoinRequestDto>>builder().success(true).message("Pending requests fetched.").data(requests).build());
+    }
+
+    @PostMapping("/requests/{requestId}/handle")
+    public ResponseEntity<ApiResponse<String>> handleJoinRequest(
+            @PathVariable Long requestId,
+            @RequestBody HandleJoinRequestDto handleRequestDto,
+            @AuthenticationPrincipal User user) {
+        String result = communityService.handleJoinRequest(requestId, handleRequestDto.isAccept(), user);
+        return ResponseEntity.ok(ApiResponse.<String>builder().success(true).message("Join request handled.").data(result).build());
     }
 
     @DeleteMapping("/{id}/members/{userId}")

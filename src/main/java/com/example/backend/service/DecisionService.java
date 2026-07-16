@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.ArrayList;
 
+import com.example.backend.exception.BadRequestException;
 import com.example.backend.exception.ResourceNotFoundException;
 import com.example.backend.exception.UnauthorizedActionException;
 import org.springframework.stereotype.Service;
@@ -16,16 +17,25 @@ import com.example.backend.dto.OptionDto;
 import com.example.backend.entity.Decision;
 import com.example.backend.entity.Option;
 import com.example.backend.entity.Role;
+import com.example.backend.entity.Community;
 import com.example.backend.entity.User;
+import com.example.backend.repository.CommunityMemberRepository;
+import com.example.backend.repository.CommunityRepository;
 import com.example.backend.repository.DecisionRepository;
 
 @Service
 public class DecisionService {
 
     private final DecisionRepository decisionRepository;
+    private final CommunityRepository communityRepository;
+    private final CommunityMemberRepository communityMemberRepository;
 
-    public DecisionService(DecisionRepository decisionRepository) {
+    public DecisionService(DecisionRepository decisionRepository,
+                           CommunityRepository communityRepository,
+                           CommunityMemberRepository communityMemberRepository) {
         this.decisionRepository = decisionRepository;
+        this.communityRepository = communityRepository;
+        this.communityMemberRepository = communityMemberRepository;
     }
 
     @Transactional
@@ -39,6 +49,16 @@ public class DecisionService {
         decision.setTitle(request.getTitle());
         decision.setDescription(request.getDescription());
         decision.setCategory(request.getCategory());
+
+        if (request.getCommunityId() != null) {
+            Community community = communityRepository.findById(request.getCommunityId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Community not found."));
+
+            if (!community.getModerator().getId().equals(user.getId()) && user.getRole() != Role.ADMIN) {
+                throw new UnauthorizedActionException("Only the moderator can create a decision for this community.");
+            }
+            decision.setCommunity(community);
+        }
 
         List<Option> options = new ArrayList<>();
         if (request.getOptions() != null) {
@@ -59,10 +79,17 @@ public class DecisionService {
     }
 
     @Transactional(readOnly = true)
-    public List<DecisionDto> getAllDecisions() {
+    public List<DecisionDto> getAllDecisions(User requester) {
         return decisionRepository.findAll().stream()
+                .filter(decision -> hasAccess(decision, requester))
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
+    }
+
+    private boolean hasAccess(Decision decision, User user) {
+        if (decision.getCommunity() == null) return true;
+        if (user.getRole() == Role.ADMIN) return true;
+        return communityMemberRepository.existsByCommunityIdAndUserId(decision.getCommunity().getId(), user.getId());
     }
 
     @Transactional(readOnly = true)
@@ -73,8 +100,12 @@ public class DecisionService {
     }
 
     @Transactional(readOnly = true)
-    public DecisionDto getDecisionById(Long id) {
-        return convertToDto(getDecisionEntityById(id));
+    public DecisionDto getDecisionById(Long id, User requester) {
+        Decision decision = getDecisionEntityById(id);
+        if (!hasAccess(decision, requester)) {
+            throw new UnauthorizedActionException("You do not have access to view this decision.");
+        }
+        return convertToDto(decision);
     }
 
     @Transactional
@@ -136,6 +167,12 @@ public class DecisionService {
         dto.setTitle(decision.getTitle());
         dto.setDescription(decision.getDescription());
         dto.setCategory(decision.getCategory());
+        
+        if (decision.getCommunity() != null) {
+            dto.setCommunityId(decision.getCommunity().getId());
+            dto.setCommunityName(decision.getCommunity().getName());
+        }
+        
         dto.setStatus(decision.getStatus());
         dto.setVisibility(decision.getVisibility());
         dto.setCreatedAt(decision.getCreatedAt());

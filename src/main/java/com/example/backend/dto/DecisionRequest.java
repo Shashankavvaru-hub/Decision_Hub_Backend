@@ -5,7 +5,16 @@ public class DecisionRequest {
     private String title;
     private String description;
     private String category;
+    private Long communityId;
     private java.util.List<OptionRequest> options;
+
+    public Long getCommunityId() {
+        return communityId;
+    }
+
+    public void setCommunityId(Long communityId) {
+        this.communityId = communityId;
+    }
 
     public java.util.List<OptionRequest> getOptions() {
         return options;

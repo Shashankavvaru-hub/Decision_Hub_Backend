@@ -30,6 +30,10 @@ public class Decision {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "community_id", nullable = true)
+    private Community community;
+
     @Column(nullable = false, length = 200)
     private String title;
 
@@ -85,6 +89,14 @@ public class Decision {
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    public Community getCommunity() {
+        return community;
+    }
+
+    public void setCommunity(Community community) {
+        this.community = community;
     }
 
     public String getTitle() {

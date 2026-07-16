@@ -49,9 +49,9 @@ public class DecisionController {
 
     @GetMapping
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ApiResponse<List<DecisionDto>>> getAllDecisions() {
+    public ResponseEntity<ApiResponse<List<DecisionDto>>> getAllDecisions(@AuthenticationPrincipal User user) {
 
-        List<DecisionDto> decisions = decisionService.getAllDecisions();
+        List<DecisionDto> decisions = decisionService.getAllDecisions(user);
         String message = decisions.isEmpty() ? "No decisions found." : "Decisions fetched successfully.";
 
         return ResponseEntity.ok(ApiResponse.<List<DecisionDto>>builder()
@@ -64,9 +64,10 @@ public class DecisionController {
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<DecisionDto>> getDecisionById(
-            @PathVariable Long id) {
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
 
-        DecisionDto decision = decisionService.getDecisionById(id);
+        DecisionDto decision = decisionService.getDecisionById(id, user);
 
         return ResponseEntity.ok(ApiResponse.<DecisionDto>builder()
                 .success(true)
