@@ -17,10 +17,14 @@ public class DecisionDto {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<OptionDto> options;
+    private Long votedOptionId;
 
     public DecisionDto() {}
 
     // Getters and Setters
+    public Long getVotedOptionId() { return votedOptionId; }
+    public void setVotedOptionId(Long votedOptionId) { this.votedOptionId = votedOptionId; }
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public Long getUserId() { return userId; }
