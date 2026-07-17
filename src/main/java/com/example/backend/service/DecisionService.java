@@ -22,6 +22,9 @@ import com.example.backend.entity.User;
 import com.example.backend.repository.CommunityMemberRepository;
 import com.example.backend.repository.CommunityRepository;
 import com.example.backend.repository.DecisionRepository;
+import com.example.backend.repository.VoteRepository;
+import com.example.backend.entity.Vote;
+import java.util.Optional;
 
 @Service
 public class DecisionService {
@@ -29,13 +32,16 @@ public class DecisionService {
     private final DecisionRepository decisionRepository;
     private final CommunityRepository communityRepository;
     private final CommunityMemberRepository communityMemberRepository;
+    private final VoteRepository voteRepository;
 
     public DecisionService(DecisionRepository decisionRepository,
                            CommunityRepository communityRepository,
-                           CommunityMemberRepository communityMemberRepository) {
+                           CommunityMemberRepository communityMemberRepository,
+                           VoteRepository voteRepository) {
         this.decisionRepository = decisionRepository;
         this.communityRepository = communityRepository;
         this.communityMemberRepository = communityMemberRepository;
+        this.voteRepository = voteRepository;
     }
 
     @Transactional
@@ -77,14 +83,14 @@ public class DecisionService {
         decision.setOptions(options);
 
         Decision saved = decisionRepository.save(decision);
-        return convertToDto(saved);
+        return convertToDto(saved, user);
     }
 
     @Transactional(readOnly = true)
     public List<DecisionDto> getAllDecisions(User requester) {
         return decisionRepository.findAll().stream()
                 .filter(decision -> hasAccess(decision, requester))
-                .map(this::convertToDto)
+                .map(decision -> convertToDto(decision, requester))
                 .collect(Collectors.toList());
     }
 
@@ -107,7 +113,7 @@ public class DecisionService {
         if (!hasAccess(decision, requester)) {
             throw new UnauthorizedActionException("You do not have access to view this decision.");
         }
-        return convertToDto(decision);
+        return convertToDto(decision, requester);
     }
 
     @Transactional
@@ -132,7 +138,7 @@ public class DecisionService {
         decision.setCategory(request.getCategory());
 
         Decision saved = decisionRepository.save(decision);
-        return convertToDto(saved);
+        return convertToDto(saved, requester);
     }
 
     @Transactional
@@ -154,6 +160,11 @@ public class DecisionService {
                     "Only the decision owner or admin can delete this decision.");
         }
 
+        if (decision.getVotes() != null && !decision.getVotes().isEmpty()) {
+            voteRepository.deleteAll(decision.getVotes());
+            decision.getVotes().clear();
+        }
+
         decisionRepository.delete(decision);
     }
 
@@ -162,13 +173,20 @@ public class DecisionService {
         return decisionRepository.count();
     }
 
-    private DecisionDto convertToDto(Decision decision) {
+    private DecisionDto convertToDto(Decision decision, User requester) {
         DecisionDto dto = new DecisionDto();
         dto.setId(decision.getId());
         dto.setUserId(decision.getUser().getId());
         dto.setTitle(decision.getTitle());
         dto.setDescription(decision.getDescription());
         dto.setCategory(decision.getCategory());
+        
+        if (requester != null) {
+            Optional<Vote> voteOpt = voteRepository.findByDecisionIdAndUserId(decision.getId(), requester.getId());
+            if (voteOpt.isPresent()) {
+                dto.setVotedOptionId(voteOpt.get().getOption().getId());
+            }
+        }
         
         if (decision.getCommunity() != null) {
             dto.setCommunityId(decision.getCommunity().getId());
