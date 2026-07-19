@@ -186,17 +186,43 @@ public class CommunityService {
         communityRepository.save(community);
     }
 
+//    @Transactional
+//    public void deleteCommunity(Long communityId, User requester) {
+//        Community community = getCommunityEntity(communityId);
+//
+//        boolean isModerator = community.getModerator().getId().equals(requester.getId());
+//        boolean isAdmin = requester.getRole() == Role.ADMIN;
+//
+//        if (!isModerator && !isAdmin) {
+//            throw new UnauthorizedActionException("Only the community owner or admin can delete the community.");
+//        }
+//
+//        communityRepository.delete(community);
+//    }
+    
     @Transactional
     public void deleteCommunity(Long communityId, User requester) {
+
         Community community = getCommunityEntity(communityId);
 
-        boolean isModerator = community.getModerator().getId().equals(requester.getId());
-        boolean isAdmin = requester.getRole() == Role.ADMIN;
+        boolean isModerator =
+                community.getModerator().getId().equals(requester.getId());
+
+        boolean isAdmin =
+                requester.getRole() == Role.ADMIN;
 
         if (!isModerator && !isAdmin) {
-            throw new UnauthorizedActionException("Only the community owner or admin can delete the community.");
+            throw new UnauthorizedActionException(
+                    "Only the community owner or admin can delete the community.");
         }
 
+        // Delete all join requests
+        communityJoinRequestRepository.deleteByCommunityId(communityId);
+
+        // Delete all community members
+        communityMemberRepository.deleteByCommunityId(communityId);
+
+        // Delete the community
         communityRepository.delete(community);
     }
 
