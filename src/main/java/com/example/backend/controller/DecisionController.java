@@ -48,7 +48,7 @@ public class DecisionController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     public ResponseEntity<ApiResponse<List<DecisionDto>>> getAllDecisions(@AuthenticationPrincipal User user) {
 
         List<DecisionDto> decisions = decisionService.getAllDecisions(user);
