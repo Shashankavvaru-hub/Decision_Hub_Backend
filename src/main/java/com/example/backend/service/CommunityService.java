@@ -22,6 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.example.backend.dto.CommunityMemberDto;
+
 @Service
 @RequiredArgsConstructor
 public class CommunityService {
@@ -247,5 +249,35 @@ public class CommunityService {
     @Transactional(readOnly = true)
     public long countCommunities() {
         return communityRepository.count();
+    }
+    
+    @Transactional(readOnly = true)
+    public List<CommunityMemberDto> getCommunityMembers(
+            Long communityId,
+            User requester) {
+
+        Community community = getCommunityEntity(communityId);
+
+        boolean isModerator =
+                community.getModerator().getId().equals(requester.getId());
+
+        boolean isAdmin =
+                requester.getRole() == Role.ADMIN;
+
+        if (!isModerator && !isAdmin) {
+            throw new UnauthorizedActionException(
+                    "Only owner or admin can view members.");
+        }
+
+        return communityMemberRepository
+                .findByCommunityId(communityId)
+                .stream()
+                .map(member -> CommunityMemberDto.builder()
+                        .userId(member.getUser().getId())
+                        .username(member.getUser().getActualUsername())
+                        .fullName(member.getUser().getFullName())
+                        .memberRole(member.getMemberRole())
+                        .build())
+                .collect(Collectors.toList());
     }
 }
