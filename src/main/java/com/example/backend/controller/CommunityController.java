@@ -1,6 +1,7 @@
 package com.example.backend.controller;
 
 import com.example.backend.dto.ApiResponse;
+
 import com.example.backend.dto.CommunityDto;
 import com.example.backend.dto.CommunityJoinRequestDto;
 import com.example.backend.dto.CreateCommunityRequest;
@@ -16,6 +17,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+
+import com.example.backend.dto.CommunityMemberDto;
 
 @RestController
 @RequestMapping("/api/communities")
@@ -95,6 +98,25 @@ public class CommunityController {
         return ResponseEntity.ok(new ApiResponse<>(true, "Member removed successfully."));
     }
 
+    
+    @GetMapping("/{id}/members")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    public ResponseEntity<ApiResponse<List<CommunityMemberDto>>> getCommunityMembers(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+
+        List<CommunityMemberDto> members =
+                communityService.getCommunityMembers(id, user);
+
+        return ResponseEntity.ok(
+                ApiResponse.<List<CommunityMemberDto>>builder()
+                        .success(true)
+                        .message("Community members fetched successfully.")
+                        .data(members)
+                        .build());
+    }
+    
+    
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<?>> deleteCommunity(@PathVariable Long id, @AuthenticationPrincipal User user) {
