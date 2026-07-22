@@ -20,4 +20,7 @@ public class CommunityDto {
     private String moderatorUsername;
     private Integer memberCount;
     private LocalDateTime createdAt;
+    private boolean isJoined;
+    private boolean isPending;
+    private boolean isModerator;
 }
