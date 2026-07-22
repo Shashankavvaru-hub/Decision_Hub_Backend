@@ -2,6 +2,7 @@ package com.example.backend.controller;
 
 import com.example.backend.dto.ApiResponse;
 
+
 import com.example.backend.dto.CommunityDto;
 import com.example.backend.dto.CommunityJoinRequestDto;
 import com.example.backend.dto.CreateCommunityRequest;
@@ -19,6 +20,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 import com.example.backend.dto.CommunityMemberDto;
+
+import com.example.backend.dto.CommunityMembershipStatusDto;
 
 @RestController
 @RequestMapping("/api/communities")
@@ -55,8 +58,13 @@ public class CommunityController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<CommunityDto>> getCommunityById(@PathVariable Long id) {
-        CommunityDto community = communityService.getCommunityById(id);
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    public ResponseEntity<ApiResponse<CommunityDto>> getCommunityById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+
+        CommunityDto community = communityService.getCommunityById(id, user);
+
         return ResponseEntity.ok(
             ApiResponse.<CommunityDto>builder()
                 .success(true)
@@ -92,7 +100,7 @@ public class CommunityController {
     }
 
     @DeleteMapping("/{id}/members/{userId}")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     public ResponseEntity<ApiResponse<?>> removeMember(@PathVariable Long id, @PathVariable Long userId, @AuthenticationPrincipal User user) {
         communityService.removeMember(id, userId, user);
         return ResponseEntity.ok(new ApiResponse<>(true, "Member removed successfully."));
@@ -133,6 +141,24 @@ public class CommunityController {
                 .message("Community count fetched successfully.")
                 .data(communityService.countCommunities())
                 .build()
+        );
+    }
+    
+    @GetMapping("/{id}/membership")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    public ResponseEntity<ApiResponse<CommunityMembershipStatusDto>> getMembershipStatus(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+
+        CommunityMembershipStatusDto status =
+                communityService.getMembershipStatus(id, user);
+
+        return ResponseEntity.ok(
+                ApiResponse.<CommunityMembershipStatusDto>builder()
+                        .success(true)
+                        .message("Membership status fetched successfully.")
+                        .data(status)
+                        .build()
         );
     }
 }

@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import com.example.backend.dto.CommunityMemberDto;
+import com.example.backend.dto.CommunityMembershipStatusDto;
 
 @Service
 @RequiredArgsConstructor
@@ -67,9 +68,31 @@ public class CommunityService {
     }
 
     @Transactional(readOnly = true)
-    public CommunityDto getCommunityById(Long id) {
+    public CommunityDto getCommunityById(Long id, User requester) {
+
         Community community = getCommunityEntity(id);
-        return convertToDto(community);
+
+        CommunityDto dto = convertToDto(community);
+
+        boolean joined = communityMemberRepository
+                .existsByCommunityIdAndUserId(
+                        community.getId(),
+                        requester.getId());
+
+        boolean pending = communityJoinRequestRepository
+                .existsByCommunityIdAndUserIdAndStatus(
+                        community.getId(),
+                        requester.getId(),
+                        "PENDING");
+
+        boolean moderator =
+                community.getModerator().getId().equals(requester.getId());
+
+        dto.setJoined(joined);
+        dto.setPending(pending);
+        dto.setModerator(moderator);
+
+        return dto;
     }
 
     @Transactional
@@ -170,8 +193,10 @@ public class CommunityService {
         boolean isModerator = community.getModerator().getId().equals(requester.getId());
         boolean isSelf = requester.getId().equals(userId);
         boolean targetIsModerator = community.getModerator().getId().equals(userId);
+        boolean isAdmin =
+                requester.getRole() == Role.ADMIN;
 
-        if (!isModerator && !isSelf) {
+        if (!isModerator && !isSelf && !isAdmin) {
             throw new UnauthorizedActionException("You are not authorized to remove this member.");
         }
 
@@ -187,20 +212,6 @@ public class CommunityService {
         community.setMemberCount(Math.max(0, community.getMemberCount() - 1));
         communityRepository.save(community);
     }
-
-//    @Transactional
-//    public void deleteCommunity(Long communityId, User requester) {
-//        Community community = getCommunityEntity(communityId);
-//
-//        boolean isModerator = community.getModerator().getId().equals(requester.getId());
-//        boolean isAdmin = requester.getRole() == Role.ADMIN;
-//
-//        if (!isModerator && !isAdmin) {
-//            throw new UnauthorizedActionException("Only the community owner or admin can delete the community.");
-//        }
-//
-//        communityRepository.delete(community);
-//    }
     
     @Transactional
     public void deleteCommunity(Long communityId, User requester) {
@@ -279,5 +290,34 @@ public class CommunityService {
                         .memberRole(member.getMemberRole())
                         .build())
                 .collect(Collectors.toList());
+    }
+    
+    @Transactional(readOnly = true)
+    public CommunityMembershipStatusDto getMembershipStatus(
+            Long communityId,
+            User requester) {
+
+        Community community = getCommunityEntity(communityId);
+
+        boolean isModerator =
+                community.getModerator().getId().equals(requester.getId());
+
+        boolean isMember =
+                communityMemberRepository.existsByCommunityIdAndUserId(
+                        communityId,
+                        requester.getId());
+
+        boolean isPending =
+                communityJoinRequestRepository
+                        .existsByCommunityIdAndUserIdAndStatus(
+                                communityId,
+                                requester.getId(),
+                                "PENDING");
+
+        return new CommunityMembershipStatusDto(
+                isMember,
+                isPending,
+                isModerator
+        );
     }
 }
