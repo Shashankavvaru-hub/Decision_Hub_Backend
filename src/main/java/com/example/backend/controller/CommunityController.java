@@ -92,7 +92,7 @@ public class CommunityController {
     }
 
     @DeleteMapping("/{id}/members/{userId}")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     public ResponseEntity<ApiResponse<?>> removeMember(@PathVariable Long id, @PathVariable Long userId, @AuthenticationPrincipal User user) {
         communityService.removeMember(id, userId, user);
         return ResponseEntity.ok(new ApiResponse<>(true, "Member removed successfully."));

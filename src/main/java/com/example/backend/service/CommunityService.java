@@ -170,8 +170,10 @@ public class CommunityService {
         boolean isModerator = community.getModerator().getId().equals(requester.getId());
         boolean isSelf = requester.getId().equals(userId);
         boolean targetIsModerator = community.getModerator().getId().equals(userId);
+        boolean isAdmin =
+                requester.getRole() == Role.ADMIN;
 
-        if (!isModerator && !isSelf) {
+        if (!isModerator && !isSelf && !isAdmin) {
             throw new UnauthorizedActionException("You are not authorized to remove this member.");
         }
 
