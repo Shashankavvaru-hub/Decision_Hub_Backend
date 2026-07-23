@@ -165,14 +165,19 @@ public class ComparisonService {
     public ComparisonTableDto getComparisonTable(Long decisionId) {
         Decision decision = getDecisionOrThrow(decisionId);
         List<ComparisonParameter> parameters = parameterRepository.findByDecisionId(decisionId);
-
-        // Auto-initialize standard factors if none exist yet for this decision
-        if (parameters.isEmpty()) {
-            parameters = initializeDefaultParameters(decision);
-        }
-
         List<Option> options = optionRepository.findByDecisionId(decisionId);
         List<OptionParameterValue> allValues = valueRepository.findByDecisionId(decisionId);
+
+        // Filter out legacy auto-initialized default parameters if they have no user-entered values
+        Set<String> defaultNames = Set.of("cost", "benefits", "risk", "time", "convenience");
+        parameters = parameters.stream().filter(param -> {
+            boolean isDefaultName = defaultNames.contains(param.getName().toLowerCase());
+            boolean hasValue = allValues.stream().anyMatch(v -> 
+                v.getParameter().getId().equals(param.getId()) && 
+                ((v.getStringValue() != null && !v.getStringValue().trim().isEmpty()) || v.getNumericValue() != null)
+            );
+            return !isDefaultName || hasValue;
+        }).collect(Collectors.toList());
 
         // Map values by optionId -> parameterId -> OptionParameterValue
         Map<Long, Map<Long, OptionParameterValue>> valueMap = new HashMap<>();
@@ -252,7 +257,6 @@ public class ComparisonService {
             // Persist totalScore & rank into Option table if option exists
             Option optionEntity = optionRepository.findById(optDto.getOptionId()).orElse(null);
             if (optionEntity != null) {
-                optionEntity.setScore((int) Math.round(optDto.getTotalScore()));
                 optionEntity.setRanking(rank);
                 optionRepository.save(optionEntity);
             }

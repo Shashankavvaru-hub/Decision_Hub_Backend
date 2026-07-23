@@ -39,7 +39,7 @@ public class OptionController {
         );
     }
     @PostMapping
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     public ResponseEntity<ApiResponse<OptionDto>> addOption(
             @PathVariable Long decisionId,
             @RequestBody OptionRequest request,

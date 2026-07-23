@@ -128,9 +128,12 @@ public class DecisionService {
                 decision.getUser().getId()
                         .equals(requester.getId());
 
-        if (!isOwner) {
+        boolean isAdmin =
+                requester.getRole() == Role.ADMIN;
+
+        if (!isOwner && !isAdmin) {
             throw new UnauthorizedActionException(
-                    "Only the decision owner can update this decision.");
+                    "Only the decision owner or admin can update this decision.");
         }
 
         decision.setTitle(request.getTitle());
