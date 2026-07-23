@@ -222,4 +222,67 @@ public class CommunityService {
     public long countCommunities() {
         return communityRepository.count();
     }
+<<<<<<< HEAD
+=======
+    
+    @Transactional(readOnly = true)
+    public List<CommunityMemberDto> getCommunityMembers(
+            Long communityId,
+            User requester) {
+
+        Community community = getCommunityEntity(communityId);
+
+        boolean isModerator =
+                community.getModerator().getId().equals(requester.getId());
+
+        boolean isAdmin =
+                requester.getRole() == Role.ADMIN;
+
+        if (!isModerator && !isAdmin) {
+            throw new UnauthorizedActionException(
+                    "Only owner or admin can view members.");
+        }
+
+        return communityMemberRepository
+                .findByCommunityId(communityId)
+                .stream()
+                .map(member -> CommunityMemberDto.builder()
+                        .userId(member.getUser().getId())
+                        .username(member.getUser().getActualUsername())
+                        .fullName(member.getUser().getFullName())
+                        .email(member.getUser().getEmail())
+                        .memberRole(member.getMemberRole())
+                        .build())
+                .collect(Collectors.toList());
+    }
+    
+    @Transactional(readOnly = true)
+    public CommunityMembershipStatusDto getMembershipStatus(
+            Long communityId,
+            User requester) {
+
+        Community community = getCommunityEntity(communityId);
+
+        boolean isModerator =
+                community.getModerator().getId().equals(requester.getId());
+
+        boolean isMember =
+                communityMemberRepository.existsByCommunityIdAndUserId(
+                        communityId,
+                        requester.getId());
+
+        boolean isPending =
+                communityJoinRequestRepository
+                        .existsByCommunityIdAndUserIdAndStatus(
+                                communityId,
+                                requester.getId(),
+                                "PENDING");
+
+        return new CommunityMembershipStatusDto(
+                isMember,
+                isPending,
+                isModerator
+        );
+    }
+>>>>>>> 4a18866 (removal of n/a in names)
 }
