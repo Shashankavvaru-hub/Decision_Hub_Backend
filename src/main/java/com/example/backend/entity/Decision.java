@@ -61,6 +61,9 @@ public class Decision {
     @OneToMany(mappedBy = "decision", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Vote> votes;
 
+    @OneToMany(mappedBy = "decision", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ComparisonParameter> comparisonParameters;
+
     public Decision() {
     }
 
@@ -169,5 +172,13 @@ public class Decision {
 
     public void setVotes(List<Vote> votes) {
         this.votes = votes;
+    }
+
+    public List<ComparisonParameter> getComparisonParameters() {
+        return comparisonParameters;
+    }
+
+    public void setComparisonParameters(List<ComparisonParameter> comparisonParameters) {
+        this.comparisonParameters = comparisonParameters;
     }
 }
