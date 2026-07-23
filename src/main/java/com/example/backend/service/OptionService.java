@@ -38,10 +38,11 @@ public class OptionService {
                         new ResourceNotFoundException("Decision not found."));
 
         boolean isOwner = decision.getUser().getId().equals(requester.getId());
+        boolean isAdmin = requester.getRole() == Role.ADMIN;
 
-        if (!isOwner) {
+        if (!isOwner && !isAdmin) {
             throw new UnauthorizedActionException(
-                    "Only the decision owner can add options.");
+                    "Only the decision owner or admin can add options.");
         }
 
         if (request.getOptionTitle() == null ||
