@@ -24,6 +24,7 @@ public class CommentService {
 
     private final CommentRepository commentRepository;
     private final DecisionRepository decisionRepository;
+    private final NotificationService notificationService;
     
     @Transactional
     public CommentDto createComment(Long decisionId,
@@ -44,6 +45,7 @@ public class CommentService {
                 .build();
 
         comment = commentRepository.save(comment);
+        notificationService.createCommentNotification(decision, user, comment.getCommentId());
 
         return convertToDto(comment);
     }
@@ -98,6 +100,7 @@ public class CommentService {
                 .build();
 
         reply = commentRepository.save(reply);
+        notificationService.createCommentNotification(parentComment.getDecision(), user, reply.getCommentId());
 
         return convertToDto(reply);
     }
