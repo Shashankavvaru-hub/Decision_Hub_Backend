@@ -418,6 +418,94 @@ public class NotificationService {
                 null
         );
     }
+    
+    @Transactional
+    public void createDecisionUpdatedNotification(Decision decision,
+                                                  User receiver,
+                                                  User updatedBy) {
+
+        // Don't notify the updater
+        if (receiver.getId().equals(updatedBy.getId())) {
+            return;
+        }
+
+        createNotification(
+                receiver,
+                updatedBy,
+                NotificationType.DECISION_UPDATED,
+                "Decision Updated",
+                decision.getTitle() + " has been updated.",
+                decision,
+                decision.getCommunity(),
+                decision.getId()
+        );
+    }
+    
+    @Transactional
+    public void createCommunityDeletedNotification(Community community,
+                                                   User receiver,
+                                                   User deletedBy) {
+
+        // Don't notify the user who deleted the community
+        if (receiver.getId().equals(deletedBy.getId())) {
+            return;
+        }
+
+        createNotification(
+                receiver,
+                deletedBy,
+                NotificationType.COMMUNITY_DELETED,
+                "Community Deleted",
+                community.getName() + " has been deleted.",
+                null,
+                null,
+                null
+        );
+    }
+    
+    @Transactional
+    public void createCommunityCreatedNotification(Community community,
+                                                   User admin,
+                                                   User creator) {
+
+        if (admin.getId().equals(creator.getId())) {
+            return;
+        }
+
+        createNotification(
+                admin,
+                creator,
+                NotificationType.COMMUNITY_CREATED,
+                "New Community Created",
+                community.getName() + " was created by "
+                        + creator.getActualUsername() + ".",
+                null,
+                community,
+                community.getId()
+        );
+    }
+    @Transactional
+    public void createDecisionCreatedNotification(Decision decision,
+                                                  User admin,
+                                                  User creator) {
+
+        if (admin.getId().equals(creator.getId())) {
+            return;
+        }
+
+        createNotification(
+                admin,
+                creator,
+                NotificationType.DECISION_CREATED,
+                "New Decision Created",
+                decision.getTitle() + " was created by "
+                        + creator.getActualUsername() + ".",
+                decision,
+                decision.getCommunity(),
+                decision.getId()
+        );
+    }
+    
 
     /**
      * Entity → DTO

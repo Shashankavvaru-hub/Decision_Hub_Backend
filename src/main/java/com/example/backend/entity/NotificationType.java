@@ -18,6 +18,7 @@ public enum NotificationType {
 
     // Community Notifications
     COMMUNITY_UPDATED,
+    COMMUNITY_DELETED,
     MEMBER_REMOVED,
 
     // Decision Notifications

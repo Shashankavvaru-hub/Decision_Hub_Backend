@@ -24,6 +24,9 @@ import com.example.backend.exception.UnauthorizedActionException;
 import com.example.backend.repository.CommunityJoinRequestRepository;
 import com.example.backend.repository.CommunityMemberRepository;
 import com.example.backend.repository.CommunityRepository;
+import com.example.backend.repository.UserRepository;
+import com.example.backend.repository.NotificationRepository;
+
 
 import lombok.RequiredArgsConstructor;
 
@@ -35,6 +38,9 @@ public class CommunityService {
     private final CommunityMemberRepository communityMemberRepository;
     private final CommunityJoinRequestRepository communityJoinRequestRepository;
     private final NotificationService notificationService;
+    private final UserRepository userRepository;
+    private final NotificationRepository notificationRepository;
+    
 
     @Transactional
     public CommunityDto createCommunity(CreateCommunityRequest request, User creator) {
@@ -59,6 +65,16 @@ public class CommunityService {
                 .build();
 
         communityMemberRepository.save(member);
+     // Notify all admins
+        List<User> admins = userRepository.findByRole(Role.ADMIN);
+
+        for (User admin : admins) {
+            notificationService.createCommunityCreatedNotification(
+                    community,
+                    admin,
+                    creator
+            );
+        }
 
         return convertToDto(community);
     }
@@ -325,11 +341,37 @@ public class CommunityService {
                     "Only the community owner or admin can delete the community.");
         }
 
+        // Fetch members BEFORE deleting them
+        List<CommunityMember> members =
+                communityMemberRepository.findByCommunityId(communityId);
+
+        // Notify all community members
+        for (CommunityMember member : members) {
+            notificationService.createCommunityDeletedNotification(
+                    community,
+                    member.getUser(),
+                    requester
+            );
+        }
+
+        // Notify all admins
+        List<User> admins = userRepository.findByRole(Role.ADMIN);
+
+        for (User admin : admins) {
+            notificationService.createCommunityDeletedNotification(
+                    community,
+                    admin,
+                    requester
+            );
+        }
+
         // Delete all join requests
         communityJoinRequestRepository.deleteByCommunityId(communityId);
 
         // Delete all community members
         communityMemberRepository.deleteByCommunityId(communityId);
+        
+        notificationRepository.clearCommunityReference(communityId);
 
         // Delete the community
         communityRepository.delete(community);
