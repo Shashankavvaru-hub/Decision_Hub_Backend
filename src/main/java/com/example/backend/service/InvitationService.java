@@ -15,7 +15,7 @@ public class InvitationService {
     private final DecisionInvitationRepository invitationRepository;
     private final DecisionRepository decisionRepository;
     private final UserRepository userRepository;
-    private final NotificationService notificationService;
+//    private final NotificationService notificationService;
 
     @Transactional
     public InvitationDto invite(Long decisionId, InvitationRequest request, User inviter) {
@@ -32,7 +32,7 @@ public class InvitationService {
 
         DecisionInvitation saved = invitationRepository.save(DecisionInvitation.builder()
                 .decision(decision).inviter(inviter).invitee(invitee).status("PENDING").build());
-        notificationService.createInvitationNotification(decision, inviter, invitee, saved.getId());
+//        notificationService.createInvitationNotification(decision, inviter, invitee, saved.getId());
         return toDto(saved);
     }
 

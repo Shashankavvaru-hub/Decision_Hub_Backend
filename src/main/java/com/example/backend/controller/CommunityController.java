@@ -1,27 +1,33 @@
 package com.example.backend.controller;
 
-import com.example.backend.dto.ApiResponse;
+import java.util.List;
 
-
-import com.example.backend.dto.CommunityDto;
-import com.example.backend.dto.CommunityJoinRequestDto;
-import com.example.backend.dto.CreateCommunityRequest;
-import com.example.backend.dto.HandleJoinRequestDto;
-import com.example.backend.entity.User;
-import com.example.backend.service.CommunityService;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
+import com.example.backend.dto.ApiResponse;
+import com.example.backend.dto.CommunityDto;
+import com.example.backend.dto.CommunityJoinRequestDto;
 import com.example.backend.dto.CommunityMemberDto;
-
 import com.example.backend.dto.CommunityMembershipStatusDto;
+import com.example.backend.dto.CreateCommunityRequest;
+import com.example.backend.dto.HandleJoinRequestDto;
+import com.example.backend.dto.UpdateCommunityRequest;
+import com.example.backend.entity.User;
+import com.example.backend.service.CommunityService;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/communities")
@@ -71,6 +77,25 @@ public class CommunityController {
                 .message("Community fetched successfully.")
                 .data(community)
                 .build()
+        );
+    }
+    
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    public ResponseEntity<ApiResponse<CommunityDto>> updateCommunity(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateCommunityRequest request,
+            @AuthenticationPrincipal User user) {
+
+        CommunityDto community =
+                communityService.updateCommunity(id, request, user);
+
+        return ResponseEntity.ok(
+                ApiResponse.<CommunityDto>builder()
+                        .success(true)
+                        .message("Community updated successfully.")
+                        .data(community)
+                        .build()
         );
     }
 

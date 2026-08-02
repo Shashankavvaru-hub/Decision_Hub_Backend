@@ -1,30 +1,34 @@
 package com.example.backend.service;
 
-import java.util.List;
-import java.util.stream.Collectors;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-import com.example.backend.exception.BadRequestException;
-import com.example.backend.exception.ResourceNotFoundException;
-import com.example.backend.exception.UnauthorizedActionException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.example.backend.dto.DecisionRequest;
-import com.example.backend.dto.OptionRequest;
 import com.example.backend.dto.DecisionDto;
+import com.example.backend.dto.DecisionRequest;
 import com.example.backend.dto.OptionDto;
+import com.example.backend.dto.OptionRequest;
+import com.example.backend.entity.Comment;
+import com.example.backend.entity.Community;
 import com.example.backend.entity.Decision;
 import com.example.backend.entity.Option;
 import com.example.backend.entity.Role;
-import com.example.backend.entity.Community;
 import com.example.backend.entity.User;
+import com.example.backend.entity.Vote;
+import com.example.backend.exception.ResourceNotFoundException;
+import com.example.backend.exception.UnauthorizedActionException;
+import com.example.backend.repository.CommentRepository;
 import com.example.backend.repository.CommunityMemberRepository;
 import com.example.backend.repository.CommunityRepository;
 import com.example.backend.repository.DecisionRepository;
+import com.example.backend.repository.UserRepository;
 import com.example.backend.repository.VoteRepository;
-import com.example.backend.entity.Vote;
-import java.util.Optional;
 
 @Service
 public class DecisionService {
@@ -33,16 +37,26 @@ public class DecisionService {
     private final CommunityRepository communityRepository;
     private final CommunityMemberRepository communityMemberRepository;
     private final VoteRepository voteRepository;
+    private final CommentRepository commentRepository;
+    private final NotificationService notificationService;
+    private final UserRepository userRepository;
+    
 
     public DecisionService(DecisionRepository decisionRepository,
-                           CommunityRepository communityRepository,
-                           CommunityMemberRepository communityMemberRepository,
-                           VoteRepository voteRepository) {
-        this.decisionRepository = decisionRepository;
-        this.communityRepository = communityRepository;
-        this.communityMemberRepository = communityMemberRepository;
-        this.voteRepository = voteRepository;
-    }
+            CommunityRepository communityRepository,
+            CommunityMemberRepository communityMemberRepository,
+            VoteRepository voteRepository,
+            CommentRepository commentRepository,
+            NotificationService notificationService,
+            UserRepository userRepository)  {
+    	this.userRepository = userRepository;
+this.decisionRepository = decisionRepository;
+this.communityRepository = communityRepository;
+this.communityMemberRepository = communityMemberRepository;
+this.voteRepository = voteRepository;
+this.commentRepository = commentRepository;
+this.notificationService = notificationService;
+}
 
     @Transactional
     public DecisionDto createDecision(
@@ -83,7 +97,19 @@ public class DecisionService {
         decision.setOptions(options);
 
         Decision saved = decisionRepository.save(decision);
-        return convertToDto(saved, user);
+
+     // Notify all admins
+     List<User> admins = userRepository.findByRole(Role.ADMIN);
+
+     for (User admin : admins) {
+         notificationService.createDecisionCreatedNotification(
+                 saved,
+                 admin,
+                 user
+         );
+     }
+
+     return convertToDto(saved, user);
     }
 
     @Transactional(readOnly = true)
@@ -141,6 +167,35 @@ public class DecisionService {
         decision.setCategory(request.getCategory());
 
         Decision saved = decisionRepository.save(decision);
+
+        /*
+         * Notify all users who interacted with this decision.
+         * (Vote / Comment / Reply)
+         */
+        Set<User> participants = new HashSet<>();
+
+        // Add all voters
+        for (Vote vote : saved.getVotes()) {
+            participants.add(vote.getUser());
+        }
+
+        // Add all commenters (includes replies because replies are also comments)
+        List<Comment> comments =
+                commentRepository.findByDecisionId(saved.getId());
+
+        for (Comment comment : comments) {
+            participants.add(comment.getUser());
+        }
+
+        // Send notification
+        for (User participant : participants) {
+            notificationService.createDecisionUpdatedNotification(
+                    saved,
+                    participant,
+                    requester
+            );
+        }
+
         return convertToDto(saved, requester);
     }
 

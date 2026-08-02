@@ -6,11 +6,9 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "notifications", indexes = {
-        @Index(name = "idx_notifications_receiver", columnList = "receiver_id"),
-        @Index(name = "idx_notifications_receiver_read", columnList = "receiver_id,is_read")
-})
-@Data
+@Table(name = "notifications")
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -21,37 +19,50 @@ public class Notification {
     @Column(name = "notification_id")
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    // User receiving the notification
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "receiver_id", nullable = false)
     private User receiver;
 
+    // User who triggered the notification
+    // Can be null for system-generated notifications
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sender_id")
     private User sender;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
+    @Column(nullable = false)
     private NotificationType type;
+
+    @Column(nullable = false, length = 100)
+    private String title;
 
     @Column(nullable = false, length = 500)
     private String message;
 
+    // Optional reference to a decision
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "decision_id")
     private Decision decision;
 
+    // Optional reference to a community
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "community_id")
+    private Community community;
+
+    // Stores Comment ID / Vote ID / Invitation ID etc.
     @Column(name = "reference_id")
     private Long referenceId;
 
-    @Builder.Default
     @Column(name = "is_read", nullable = false)
+    @Builder.Default
     private boolean read = false;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
     @PrePersist
-    void prePersist() {
-        if (createdAt == null) createdAt = LocalDateTime.now();
+    public void onCreate() {
+        createdAt = LocalDateTime.now();
     }
 }

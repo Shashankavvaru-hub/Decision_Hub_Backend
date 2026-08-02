@@ -8,6 +8,7 @@ import java.util.List;
 
 @Repository
 public interface CommentRepository extends JpaRepository<Comment, Long> {
+	List<Comment> findByDecisionId(Long decisionId);
 
     // Fetch all top-level comments for a decision
     List<Comment> findByDecisionIdAndParentCommentIsNullOrderByCreatedAtAsc(Long decisionId);

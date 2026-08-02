@@ -45,7 +45,12 @@ public class CommentService {
                 .build();
 
         comment = commentRepository.save(comment);
-        notificationService.createCommentNotification(decision, user, comment.getCommentId());
+
+        notificationService.createCommentNotification(
+                decision,
+                user,
+                comment.getCommentId()
+        );
 
         return convertToDto(comment);
     }
@@ -100,7 +105,12 @@ public class CommentService {
                 .build();
 
         reply = commentRepository.save(reply);
-        notificationService.createCommentNotification(parentComment.getDecision(), user, reply.getCommentId());
+
+        notificationService.createReplyNotification(
+                parentComment,
+                user,
+                reply.getCommentId()
+        );
 
         return convertToDto(reply);
     }
@@ -139,6 +149,13 @@ public class CommentService {
 
         comment = commentRepository.save(comment);
 
+        // Notify the decision owner
+        notificationService.createCommentEditedNotification(
+                comment.getDecision(),
+                user,
+                comment.getCommentId()
+        );
+
         return convertToDtoWithReplies(comment);
     }
     
@@ -157,6 +174,13 @@ public class CommentService {
             throw new UnauthorizedActionException(
                     "You are not authorized to delete this comment.");
         }
+
+     // Notify before deleting
+        notificationService.createCommentDeletedNotification(
+                comment.getDecision(),
+                user,
+                comment.getCommentId()
+        );
 
         commentRepository.delete(comment);
     }
