@@ -1,6 +1,7 @@
 package com.example.backend.service;
 
 import org.springframework.stereotype.Service;
+
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.backend.dto.VoteDto;
@@ -14,6 +15,7 @@ import com.example.backend.exception.ResourceNotFoundException;
 import com.example.backend.repository.DecisionRepository;
 import com.example.backend.repository.OptionRepository;
 import com.example.backend.repository.VoteRepository;
+import com.example.backend.service.NotificationService;
 
 import java.util.Optional;
 
@@ -23,12 +25,19 @@ public class VoteService {
     private final VoteRepository voteRepository;
     private final OptionRepository optionRepository;
     private final DecisionRepository decisionRepository;
+    private final NotificationService notificationService;
+    
 
-    public VoteService(VoteRepository voteRepository, OptionRepository optionRepository, DecisionRepository decisionRepository) {
-        this.voteRepository = voteRepository;
-        this.optionRepository = optionRepository;
-        this.decisionRepository = decisionRepository;
-    }
+    public VoteService(VoteRepository voteRepository,
+            OptionRepository optionRepository,
+            DecisionRepository decisionRepository,
+            NotificationService notificationService) {
+
+    		this.voteRepository = voteRepository;
+    		this.optionRepository = optionRepository;
+    		this.decisionRepository = decisionRepository;
+    		this.notificationService = notificationService;
+}
 
     @Transactional
     public VoteDto castVote(Long decisionId, VoteRequest request, User user) {
@@ -49,17 +58,29 @@ public class VoteService {
             Option oldOption = existingVote.getOption();
 
             if (!oldOption.getId().equals(newOption.getId())) {
-                // Changing vote
+
+                // Remove score from old option
                 oldOption.setScore(oldOption.getScore() - 1);
                 optionRepository.save(oldOption);
 
+                // Update vote
                 existingVote.setOption(newOption);
                 existingVote.setVoteType(request.getVoteType());
-                
+
+                // Add score to new option
                 newOption.setScore(newOption.getScore() + 1);
                 optionRepository.save(newOption);
 
-                return convertToDto(voteRepository.save(existingVote));
+                Vote updatedVote = voteRepository.save(existingVote);
+
+                // Notify decision owner
+                notificationService.createVoteUpdatedNotification(
+                        decision,
+                        user,
+                        updatedVote.getId()
+                );
+
+                return convertToDto(updatedVote);
             } else {
                 // Same option, maybe updating voteType
                 existingVote.setVoteType(request.getVoteType());
@@ -67,16 +88,26 @@ public class VoteService {
             }
         } else {
             // New vote
-            Vote vote = new Vote();
-            vote.setUser(user);
-            vote.setDecision(decision);
-            vote.setOption(newOption);
-            vote.setVoteType(request.getVoteType());
+        	// New vote
+        	Vote vote = new Vote();
+        	vote.setUser(user);
+        	vote.setDecision(decision);
+        	vote.setOption(newOption);
+        	vote.setVoteType(request.getVoteType());
 
-            newOption.setScore(newOption.getScore() + 1);
-            optionRepository.save(newOption);
+        	newOption.setScore(newOption.getScore() + 1);
+        	optionRepository.save(newOption);
 
-            return convertToDto(voteRepository.save(vote));
+        	Vote savedVote = voteRepository.save(vote);
+
+        	// Notify the decision owner
+        	notificationService.createVoteNotification(
+        	        decision,
+        	        user,
+        	        savedVote.getId()
+        	);
+
+        	return convertToDto(savedVote);
         }
     }
 

@@ -1,5 +1,4 @@
 package com.example.backend.entity;
-
 public enum NotificationType {
 
     // Decision Interaction Notifications
@@ -9,15 +8,23 @@ public enum NotificationType {
     COMMENT_DELETE,
 
     VOTE,
-    VOTE_CHANGED,
+    VOTE_UPDATED,
     VOTE_REMOVED,
 
-    INVITATION,
+    // Community Join Request Notifications
+    JOIN_REQUEST,
+    JOIN_REQUEST_APPROVED,
+    JOIN_REQUEST_REJECTED,
 
     // Community Notifications
     COMMUNITY_UPDATED,
-    DECISION_UPDATED,
     MEMBER_REMOVED,
+
+    // Decision Notifications
+    DECISION_UPDATED,
+
+    // Legacy / Future (currently unused)
+    INVITATION,
 
     // Admin Notifications
     COMMUNITY_CREATED,

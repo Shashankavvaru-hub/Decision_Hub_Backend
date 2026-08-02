@@ -7,15 +7,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.backend.dto.NotificationDto;
+import com.example.backend.entity.Comment;
 import com.example.backend.entity.Community;
 import com.example.backend.entity.Decision;
 import com.example.backend.entity.Notification;
 import com.example.backend.entity.NotificationType;
 import com.example.backend.entity.User;
-import com.example.backend.repository.NotificationRepository;
 import com.example.backend.exception.ResourceNotFoundException;
 //import com.example.backend.exception.ResourceNotFoundException;
 import com.example.backend.exception.UnauthorizedActionException;
+import com.example.backend.repository.NotificationRepository;
+
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -24,6 +26,7 @@ import lombok.RequiredArgsConstructor;
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
+    
 
     /**
      * Generic notification creator
@@ -139,6 +142,281 @@ public class NotificationService {
         }
 
         notificationRepository.delete(notification);
+    }
+    
+    
+    @Transactional
+    public void createCommentNotification(Decision decision,
+                                          User commenter,
+                                          Long commentId) {
+
+    	User decisionOwner = decision.getUser();
+
+        // Don't notify yourself
+        if (decisionOwner.getId().equals(commenter.getId())) {
+            return;
+        }
+
+        createNotification(
+                decisionOwner,
+                commenter,
+                NotificationType.COMMENT,
+                "New Comment",
+                commenter.getActualUsername() + " commented on your decision.",
+                decision,
+                decision.getCommunity(),
+                commentId
+        );
+    }
+    
+    @Transactional
+    public void createCommentEditedNotification(Decision decision,
+                                                User editor,
+                                                Long commentId) {
+
+        User decisionOwner = decision.getUser();
+
+        // Don't notify yourself
+        if (decisionOwner.getId().equals(editor.getId())) {
+            return;
+        }
+
+        createNotification(
+                decisionOwner,
+                editor,
+                NotificationType.COMMENT_EDIT,
+                "Comment Edited",
+                editor.getActualUsername() + " edited a comment on your decision.",
+                decision,
+                decision.getCommunity(),
+                commentId
+        );
+    }
+    
+    @Transactional
+    public void createCommentDeletedNotification(Decision decision,
+                                                 User user,
+                                                 Long commentId) {
+
+        User decisionOwner = decision.getUser();
+
+        // Don't notify yourself
+        if (decisionOwner.getId().equals(user.getId())) {
+            return;
+        }
+
+        createNotification(
+                decisionOwner,
+                user,
+                NotificationType.COMMENT_DELETE,
+                "Comment Deleted",
+                user.getActualUsername() + " deleted a comment on your decision.",
+                decision,
+                decision.getCommunity(),
+                commentId
+        );
+    }
+    
+    @Transactional
+    public void createReplyNotification(Comment parentComment,
+                                        User replier,
+                                        Long replyId) {
+
+        User receiver = parentComment.getUser();
+
+        // Don't notify yourself
+        if (receiver.getId().equals(replier.getId())) {
+            return;
+        }
+
+        createNotification(
+                receiver,
+                replier,
+                NotificationType.REPLY,
+                "New Reply",
+                replier.getActualUsername() + " replied to your comment.",
+                parentComment.getDecision(),
+                parentComment.getDecision().getCommunity(),
+                replyId
+        );
+    }
+    
+    @Transactional
+    public void createVoteNotification(Decision decision,
+                                       User voter,
+                                       Long voteId) {
+
+        User decisionOwner = decision.getUser();
+
+        if (decisionOwner.getId().equals(voter.getId())) {
+            return;
+        }
+
+        createNotification(
+                decisionOwner,
+                voter,
+                NotificationType.VOTE,
+                "New Vote",
+                voter.getActualUsername() + " voted on your decision.",
+                decision,
+                decision.getCommunity(),
+                voteId
+        );
+    }
+    
+    @Transactional
+    public void createVoteUpdatedNotification(Decision decision,
+                                              User voter,
+                                              Long voteId) {
+
+        User decisionOwner = decision.getUser();
+
+        if (decisionOwner.getId().equals(voter.getId())) {
+            return;
+        }
+
+        createNotification(
+                decisionOwner,
+                voter,
+                NotificationType.VOTE_UPDATED,
+                "Vote Updated",
+                voter.getActualUsername() + " changed their vote.",
+                decision,
+                decision.getCommunity(),
+                voteId
+        );
+    }
+    
+    @Transactional
+    public void createVoteRemovedNotification(Decision decision,
+                                              User voter) {
+
+        User decisionOwner = decision.getUser();
+
+        if (decisionOwner.getId().equals(voter.getId())) {
+            return;
+        }
+
+        createNotification(
+                decisionOwner,
+                voter,
+                NotificationType.VOTE_REMOVED,
+                "Vote Removed",
+                voter.getActualUsername() + " removed their vote.",
+                decision,
+                decision.getCommunity(),
+                null
+        );
+    }
+    
+    @Transactional
+    public void createJoinRequestNotification(Community community,
+                                              User requester,
+                                              Long requestId) {
+
+        User moderator = community.getModerator();
+
+        // Don't notify yourself
+        if (moderator.getId().equals(requester.getId())) {
+            return;
+        }
+
+        createNotification(
+                moderator,
+                requester,
+                NotificationType.JOIN_REQUEST,
+                "New Join Request",
+                requester.getActualUsername() +
+                        " requested to join " +
+                        community.getName() + ".",
+                null,
+                community,
+                requestId
+        );
+    }
+    
+    @Transactional
+    public void createJoinRequestApprovedNotification(Community community,
+                                                      User user,
+                                                      Long requestId) {
+
+        createNotification(
+                user,
+                community.getModerator(),
+                NotificationType.JOIN_REQUEST_APPROVED,
+                "Request Approved",
+                "Your request to join " +
+                        community.getName() +
+                        " was approved.",
+                null,
+                community,
+                requestId
+        );
+    }
+    
+    @Transactional
+    public void createJoinRequestRejectedNotification(Community community,
+                                                      User user,
+                                                      Long requestId) {
+
+        createNotification(
+                user,
+                community.getModerator(),
+                NotificationType.JOIN_REQUEST_REJECTED,
+                "Request Rejected",
+                "Your request to join " +
+                        community.getName() +
+                        " was rejected.",
+                null,
+                community,
+                requestId
+        );
+    }
+    
+    @Transactional
+    public void createMemberRemovedNotification(Community community,
+                                                User removedUser,
+                                                User removedBy) {
+
+        // If user removed themselves, don't notify
+        if (removedUser.getId().equals(removedBy.getId())) {
+            return;
+        }
+
+        createNotification(
+                removedUser,
+                removedBy,
+                NotificationType.MEMBER_REMOVED,
+                "Removed from Community",
+                "You have been removed from " +
+                        community.getName() + ".",
+                null,
+                community,
+                null
+        );
+    }
+    
+    @Transactional
+    public void createCommunityUpdatedNotification(
+            Community community,
+            User receiver,
+            User updatedBy) {
+
+        // Don't notify the user who performed the update
+        if (receiver.getId().equals(updatedBy.getId())) {
+            return;
+        }
+
+        createNotification(
+                receiver,
+                updatedBy,
+                NotificationType.COMMUNITY_UPDATED,
+                "Community Updated",
+                community.getName() + " has been updated.",
+                null,
+                community,
+                null
+        );
     }
 
     /**
