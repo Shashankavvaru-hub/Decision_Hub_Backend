@@ -8,4 +8,7 @@ public interface DecisionInvitationRepository extends JpaRepository<DecisionInvi
     boolean existsByDecisionIdAndInviteeId(Long decisionId, Long inviteeId);
     List<DecisionInvitation> findByInviteeIdOrderByCreatedAtDesc(Long inviteeId);
     void deleteByDecisionId(Long decisionId);
+    void deleteByInviterId(Long inviterId);
+    void deleteByInviteeId(Long inviteeId);
 }
+

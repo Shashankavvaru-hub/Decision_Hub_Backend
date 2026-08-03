@@ -44,4 +44,8 @@ public interface CommunityJoinRequestRepository extends JpaRepository<CommunityJ
 
     // ADD THIS
     void deleteByCommunityId(Long communityId);
+
+    void deleteByUserId(Long userId);
+
+    List<CommunityJoinRequest> findByUserId(Long userId);
 }

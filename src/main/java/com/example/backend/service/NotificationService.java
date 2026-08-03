@@ -16,7 +16,10 @@ import com.example.backend.entity.User;
 import com.example.backend.exception.ResourceNotFoundException;
 //import com.example.backend.exception.ResourceNotFoundException;
 import com.example.backend.exception.UnauthorizedActionException;
+import com.example.backend.entity.CommunityMember;
 import com.example.backend.repository.NotificationRepository;
+import com.example.backend.repository.UserRepository;
+import com.example.backend.repository.CommunityMemberRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -26,6 +29,8 @@ import lombok.RequiredArgsConstructor;
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
+    private final UserRepository userRepository;
+    private final CommunityMemberRepository communityMemberRepository;
     
 
     /**
@@ -544,5 +549,39 @@ public class NotificationService {
                 .createdAt(notification.getCreatedAt())
 
                 .build();
+    }
+
+    public int broadcastAnnouncement(String title, String message, String target, User sender) {
+        List<User> recipients;
+        if (target == null || target.equalsIgnoreCase("All Users") || target.trim().isEmpty()) {
+            recipients = userRepository.findAll();
+        } else {
+            List<CommunityMember> members;
+            try {
+                Long communityId = Long.parseLong(target);
+                members = communityMemberRepository.findByCommunityId(communityId);
+            } catch (NumberFormatException e) {
+                members = communityMemberRepository.findAll().stream()
+                        .filter(cm -> cm.getCommunity() != null && cm.getCommunity().getName().equalsIgnoreCase(target))
+                        .collect(Collectors.toList());
+            }
+            recipients = members.stream().map(CommunityMember::getUser).collect(Collectors.toList());
+        }
+
+        int count = 0;
+        for (User receiver : recipients) {
+            createNotification(
+                    receiver,
+                    sender,
+                    NotificationType.BROADCAST,
+                    title,
+                    message,
+                    null,
+                    null,
+                    null
+            );
+            count++;
+        }
+        return count;
     }
 }

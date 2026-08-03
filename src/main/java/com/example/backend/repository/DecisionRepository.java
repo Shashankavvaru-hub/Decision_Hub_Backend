@@ -8,4 +8,5 @@ import java.util.List;
 
 public interface DecisionRepository extends JpaRepository<Decision, Long> {
     List<Decision> findByCommunityId(Long communityId);
+    List<Decision> findByUserId(Long userId);
 }

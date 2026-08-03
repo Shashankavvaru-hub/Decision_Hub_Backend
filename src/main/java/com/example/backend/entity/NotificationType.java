@@ -30,5 +30,8 @@ public enum NotificationType {
     // Admin Notifications
     COMMUNITY_CREATED,
     DECISION_CREATED,
-    MODERATOR_ACTION
+    MODERATOR_ACTION,
+    BROADCAST,
+    ANNOUNCEMENT,
+    WARNING
 }
