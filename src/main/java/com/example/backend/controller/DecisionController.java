@@ -1,6 +1,7 @@
 package com.example.backend.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -91,6 +92,22 @@ public class DecisionController {
         return ResponseEntity.ok(ApiResponse.<DecisionDto>builder()
                 .success(true)
                 .message("Decision updated successfully.")
+                .data(decision)
+                .build());
+    }
+
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    public ResponseEntity<ApiResponse<DecisionDto>> updateDecisionStatus(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> payload,
+            @AuthenticationPrincipal User user) {
+
+        DecisionDto decision = decisionService.updateDecisionStatus(id, payload, user);
+
+        return ResponseEntity.ok(ApiResponse.<DecisionDto>builder()
+                .success(true)
+                .message("Decision status updated successfully.")
                 .data(decision)
                 .build());
     }

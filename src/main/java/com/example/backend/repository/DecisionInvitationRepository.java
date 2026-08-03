@@ -7,4 +7,5 @@ import com.example.backend.entity.DecisionInvitation;
 public interface DecisionInvitationRepository extends JpaRepository<DecisionInvitation, Long> {
     boolean existsByDecisionIdAndInviteeId(Long decisionId, Long inviteeId);
     List<DecisionInvitation> findByInviteeIdOrderByCreatedAtDesc(Long inviteeId);
+    void deleteByDecisionId(Long decisionId);
 }

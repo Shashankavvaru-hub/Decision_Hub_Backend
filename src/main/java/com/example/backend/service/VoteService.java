@@ -44,6 +44,10 @@ public class VoteService {
         Decision decision = decisionRepository.findById(decisionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Decision not found"));
 
+        if ("CLOSED".equalsIgnoreCase(decision.getStatus())) {
+            throw new BadRequestException("This decision board is closed for voting.");
+        }
+
         Option newOption = optionRepository.findById(request.getOptionId())
                 .orElseThrow(() -> new ResourceNotFoundException("Option not found"));
 
@@ -59,19 +63,16 @@ public class VoteService {
 
             if (!oldOption.getId().equals(newOption.getId())) {
 
-                // Remove score from old option
-                oldOption.setScore(oldOption.getScore() - 1);
-                optionRepository.save(oldOption);
-
                 // Update vote
                 existingVote.setOption(newOption);
                 existingVote.setVoteType(request.getVoteType());
-
-                // Add score to new option
-                newOption.setScore(newOption.getScore() + 1);
-                optionRepository.save(newOption);
-
                 Vote updatedVote = voteRepository.save(existingVote);
+
+                // Recalculate exact vote counts for both options
+                oldOption.setScore((int) voteRepository.countByOptionId(oldOption.getId()));
+                optionRepository.save(oldOption);
+                newOption.setScore((int) voteRepository.countByOptionId(newOption.getId()));
+                optionRepository.save(newOption);
 
                 // Notify decision owner
                 notificationService.createVoteUpdatedNotification(
@@ -88,26 +89,25 @@ public class VoteService {
             }
         } else {
             // New vote
-        	// New vote
-        	Vote vote = new Vote();
-        	vote.setUser(user);
-        	vote.setDecision(decision);
-        	vote.setOption(newOption);
-        	vote.setVoteType(request.getVoteType());
+            Vote vote = new Vote();
+            vote.setUser(user);
+            vote.setDecision(decision);
+            vote.setOption(newOption);
+            vote.setVoteType(request.getVoteType());
+            Vote savedVote = voteRepository.save(vote);
 
-        	newOption.setScore(newOption.getScore() + 1);
-        	optionRepository.save(newOption);
+            // Recalculate exact vote count for new option
+            newOption.setScore((int) voteRepository.countByOptionId(newOption.getId()));
+            optionRepository.save(newOption);
 
-        	Vote savedVote = voteRepository.save(vote);
+            // Notify the decision owner
+            notificationService.createVoteNotification(
+                    decision,
+                    user,
+                    savedVote.getId()
+            );
 
-        	// Notify the decision owner
-        	notificationService.createVoteNotification(
-        	        decision,
-        	        user,
-        	        savedVote.getId()
-        	);
-
-        	return convertToDto(savedVote);
+            return convertToDto(savedVote);
         }
     }
 
