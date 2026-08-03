@@ -3,6 +3,7 @@ package com.example.backend.service;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -21,12 +22,15 @@ import com.example.backend.entity.Option;
 import com.example.backend.entity.Role;
 import com.example.backend.entity.User;
 import com.example.backend.entity.Vote;
+import com.example.backend.exception.BadRequestException;
 import com.example.backend.exception.ResourceNotFoundException;
 import com.example.backend.exception.UnauthorizedActionException;
 import com.example.backend.repository.CommentRepository;
 import com.example.backend.repository.CommunityMemberRepository;
 import com.example.backend.repository.CommunityRepository;
+import com.example.backend.repository.DecisionInvitationRepository;
 import com.example.backend.repository.DecisionRepository;
+import com.example.backend.repository.NotificationRepository;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.repository.VoteRepository;
 
@@ -40,6 +44,8 @@ public class DecisionService {
     private final CommentRepository commentRepository;
     private final NotificationService notificationService;
     private final UserRepository userRepository;
+    private final DecisionInvitationRepository invitationRepository;
+    private final NotificationRepository notificationRepository;
     
 
     public DecisionService(DecisionRepository decisionRepository,
@@ -48,7 +54,9 @@ public class DecisionService {
             VoteRepository voteRepository,
             CommentRepository commentRepository,
             NotificationService notificationService,
-            UserRepository userRepository)  {
+            UserRepository userRepository,
+            DecisionInvitationRepository invitationRepository,
+            NotificationRepository notificationRepository)  {
     	this.userRepository = userRepository;
 this.decisionRepository = decisionRepository;
 this.communityRepository = communityRepository;
@@ -56,6 +64,8 @@ this.communityMemberRepository = communityMemberRepository;
 this.voteRepository = voteRepository;
 this.commentRepository = commentRepository;
 this.notificationService = notificationService;
+this.invitationRepository = invitationRepository;
+this.notificationRepository = notificationRepository;
 }
 
     @Transactional
@@ -223,7 +233,47 @@ this.notificationService = notificationService;
             decision.getVotes().clear();
         }
 
+        // Delete invitations linked to decision
+        invitationRepository.deleteByDecisionId(id);
+
+        // Delete comments linked to decision
+        commentRepository.deleteByDecisionId(id);
+
+        // Clear decision references in notifications
+        notificationRepository.clearDecisionReference(id);
+
         decisionRepository.delete(decision);
+    }
+
+    @Transactional
+    public DecisionDto updateDecisionStatus(
+            Long id,
+            Map<String, String> payload,
+            User requester) {
+
+        Decision decision = getDecisionEntityById(id);
+
+        boolean isOwner =
+                decision.getUser().getId()
+                        .equals(requester.getId());
+
+        boolean isAdmin =
+                requester.getRole() == Role.ADMIN;
+
+        if (!isOwner && !isAdmin) {
+            throw new UnauthorizedActionException(
+                    "Only the decision owner or admin can update decision board status.");
+        }
+
+        String newStatus = payload.get("status");
+        if (newStatus == null || newStatus.trim().isEmpty()) {
+            throw new BadRequestException("Status is required.");
+        }
+
+        decision.setStatus(newStatus.trim().toUpperCase());
+        Decision saved = decisionRepository.save(decision);
+
+        return convertToDto(saved, requester);
     }
 
     @Transactional(readOnly = true)
@@ -265,7 +315,8 @@ this.notificationService = notificationService;
                 optDto.setDescription(opt.getDescription());
                 optDto.setPros(opt.getPros());
                 optDto.setCons(opt.getCons());
-                optDto.setScore(opt.getScore());
+                long dynamicScore = voteRepository.countByOptionId(opt.getId());
+                optDto.setScore((int) dynamicScore);
                 optDto.setRanking(opt.getRanking());
                 optDto.setCreatedAt(opt.getCreatedAt());
                 return optDto;

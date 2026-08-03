@@ -24,6 +24,7 @@ import com.example.backend.exception.UnauthorizedActionException;
 import com.example.backend.repository.CommunityJoinRequestRepository;
 import com.example.backend.repository.CommunityMemberRepository;
 import com.example.backend.repository.CommunityRepository;
+import com.example.backend.repository.DecisionRepository;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.repository.NotificationRepository;
 
@@ -40,6 +41,8 @@ public class CommunityService {
     private final NotificationService notificationService;
     private final UserRepository userRepository;
     private final NotificationRepository notificationRepository;
+    private final DecisionRepository decisionRepository;
+    private final DecisionService decisionService;
     
 
     @Transactional
@@ -363,6 +366,12 @@ public class CommunityService {
                     admin,
                     requester
             );
+        }
+
+        // Delete all decisions belonging to this community first
+        List<com.example.backend.entity.Decision> communityDecisions = decisionRepository.findByCommunityId(communityId);
+        for (com.example.backend.entity.Decision d : communityDecisions) {
+            decisionService.deleteDecision(d.getId(), requester);
         }
 
         // Delete all join requests

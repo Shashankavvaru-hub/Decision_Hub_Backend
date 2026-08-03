@@ -15,4 +15,6 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
 
     // Fetch replies of a comment
     List<Comment> findByParentCommentCommentIdOrderByCreatedAtAsc(Long commentId);
+
+    void deleteByDecisionId(Long decisionId);
 }

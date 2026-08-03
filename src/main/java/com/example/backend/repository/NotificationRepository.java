@@ -20,6 +20,14 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 	       """)
 	void clearCommunityReference(@Param("communityId") Long communityId);
 
+	@Modifying
+	@Query("""
+	       UPDATE Notification n
+	       SET n.decision = null
+	       WHERE n.decision.id = :decisionId
+	       """)
+	void clearDecisionReference(@Param("decisionId") Long decisionId);
+
     // All notifications of a user (Newest first)
     List<Notification> findByReceiverIdOrderByCreatedAtDesc(Long receiverId);
 
