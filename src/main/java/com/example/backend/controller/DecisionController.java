@@ -112,6 +112,32 @@ public class DecisionController {
                 .build());
     }
 
+    @PutMapping("/{id}/lock")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    public ResponseEntity<ApiResponse<DecisionDto>> toggleLockDiscussion(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+
+        DecisionDto decision = decisionService.toggleLockDiscussion(id, user);
+        String msg = Boolean.TRUE.equals(decision.getIsDiscussionLocked()) 
+                ? "Discussion locked successfully." 
+                : "Discussion unlocked successfully.";
+
+        return ResponseEntity.ok(ApiResponse.<DecisionDto>builder()
+                .success(true)
+                .message(msg)
+                .data(decision)
+                .build());
+    }
+
+    @PatchMapping("/{id}/lock")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    public ResponseEntity<ApiResponse<DecisionDto>> toggleLockDiscussionPatch(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+        return toggleLockDiscussion(id, user);
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<ApiResponse<?>> deleteDecision(

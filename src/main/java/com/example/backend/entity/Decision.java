@@ -49,6 +49,9 @@ public class Decision {
     @Column(length = 30)
     private String visibility = "PUBLIC";
 
+    @Column(name = "is_discussion_locked")
+    private Boolean isDiscussionLocked = false;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -180,5 +183,13 @@ public class Decision {
 
     public void setComparisonParameters(List<ComparisonParameter> comparisonParameters) {
         this.comparisonParameters = comparisonParameters;
+    }
+
+    public Boolean getIsDiscussionLocked() {
+        return isDiscussionLocked != null ? isDiscussionLocked : false;
+    }
+
+    public void setIsDiscussionLocked(Boolean isDiscussionLocked) {
+        this.isDiscussionLocked = isDiscussionLocked;
     }
 }

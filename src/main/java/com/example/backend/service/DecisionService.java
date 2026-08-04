@@ -281,6 +281,41 @@ this.notificationRepository = notificationRepository;
         return decisionRepository.count();
     }
 
+    public boolean isModeratorOrOwnerOrAdmin(Decision decision, User user) {
+        if (user == null) return false;
+        if (user.getRole() == Role.ADMIN) return true;
+        if (decision.getUser() != null && decision.getUser().getId().equals(user.getId())) {
+            return true;
+        }
+        if (decision.getCommunity() != null) {
+            Community community = decision.getCommunity();
+            if (community.getModerator() != null && community.getModerator().getId().equals(user.getId())) {
+                return true;
+            }
+            Optional<com.example.backend.entity.CommunityMember> memberOpt = 
+                    communityMemberRepository.findByCommunityIdAndUserId(community.getId(), user.getId());
+            if (memberOpt.isPresent() && "MODERATOR".equalsIgnoreCase(memberOpt.get().getMemberRole())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Transactional
+    public DecisionDto toggleLockDiscussion(Long id, User requester) {
+        Decision decision = getDecisionEntityById(id);
+
+        if (!isModeratorOrOwnerOrAdmin(decision, requester)) {
+            throw new UnauthorizedActionException("Only community moderators, decision owner, or admin can lock or unlock discussions.");
+        }
+
+        boolean currentStatus = Boolean.TRUE.equals(decision.getIsDiscussionLocked());
+        decision.setIsDiscussionLocked(!currentStatus);
+        Decision saved = decisionRepository.save(decision);
+
+        return convertToDto(saved, requester);
+    }
+
     private DecisionDto convertToDto(Decision decision, User requester) {
         DecisionDto dto = new DecisionDto();
         dto.setId(decision.getId());
@@ -303,6 +338,7 @@ this.notificationRepository = notificationRepository;
         
         dto.setStatus(decision.getStatus());
         dto.setVisibility(decision.getVisibility());
+        dto.setIsDiscussionLocked(decision.getIsDiscussionLocked());
         dto.setCreatedAt(decision.getCreatedAt());
         dto.setUpdatedAt(decision.getUpdatedAt());
 

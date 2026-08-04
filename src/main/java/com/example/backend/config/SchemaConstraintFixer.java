@@ -30,5 +30,21 @@ public class SchemaConstraintFixer {
             jdbcTemplate.execute("ALTER TABLE reports DROP CONSTRAINT IF EXISTS reports_target_type_check");
             jdbcTemplate.execute("ALTER TABLE reports DROP CONSTRAINT IF EXISTS reports_status_check");
         } catch (Exception ignored) {}
+
+        try {
+            jdbcTemplate.execute("ALTER TABLE decisions ADD COLUMN IF NOT EXISTS is_discussion_locked BOOLEAN DEFAULT FALSE");
+            jdbcTemplate.execute("UPDATE decisions SET is_discussion_locked = FALSE WHERE is_discussion_locked IS NULL");
+        } catch (Exception e) {
+            log.warn("Could not ensure is_discussion_locked column on decisions: {}", e.getMessage());
+        }
+
+        try {
+            jdbcTemplate.execute("ALTER TABLE comments ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN DEFAULT FALSE");
+            jdbcTemplate.execute("ALTER TABLE comments ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN DEFAULT FALSE");
+            jdbcTemplate.execute("UPDATE comments SET is_pinned = FALSE WHERE is_pinned IS NULL");
+            jdbcTemplate.execute("UPDATE comments SET is_hidden = FALSE WHERE is_hidden IS NULL");
+        } catch (Exception e) {
+            log.warn("Could not ensure is_pinned / is_hidden columns on comments: {}", e.getMessage());
+        }
     }
 }

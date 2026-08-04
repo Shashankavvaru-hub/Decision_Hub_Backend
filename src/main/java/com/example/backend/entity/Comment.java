@@ -41,6 +41,14 @@ public class Comment {
     @Column(name = "comment_text", nullable = false, columnDefinition = "TEXT")
     private String commentText;
 
+    @Builder.Default
+    @Column(name = "is_pinned")
+    private Boolean isPinned = false;
+
+    @Builder.Default
+    @Column(name = "is_hidden")
+    private Boolean isHidden = false;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -56,5 +64,13 @@ public class Comment {
     @PreUpdate
     public void preUpdate() {
         updatedAt = LocalDateTime.now();
+    }
+
+    public Boolean getIsPinned() {
+        return isPinned != null ? isPinned : false;
+    }
+
+    public Boolean getIsHidden() {
+        return isHidden != null ? isHidden : false;
     }
 }

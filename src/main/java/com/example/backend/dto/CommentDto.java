@@ -24,5 +24,11 @@ public class CommentDto {
 
     private LocalDateTime createdAt;
 
+    @Builder.Default
+    private Boolean isPinned = false;
+
+    @Builder.Default
+    private Boolean isHidden = false;
+
     private List<CommentDto> replies;
 }

@@ -18,6 +18,7 @@ public class DecisionDto {
     private LocalDateTime updatedAt;
     private List<OptionDto> options;
     private Long votedOptionId;
+    private Boolean isDiscussionLocked;
 
     public DecisionDto() {}
 
@@ -49,4 +50,6 @@ public class DecisionDto {
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
     public List<OptionDto> getOptions() { return options; }
     public void setOptions(List<OptionDto> options) { this.options = options; }
+    public Boolean getIsDiscussionLocked() { return isDiscussionLocked != null ? isDiscussionLocked : false; }
+    public void setIsDiscussionLocked(Boolean isDiscussionLocked) { this.isDiscussionLocked = isDiscussionLocked; }
 }

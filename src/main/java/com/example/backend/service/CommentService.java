@@ -1,6 +1,8 @@
 package com.example.backend.service;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -8,12 +10,15 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.backend.dto.CommentDto;
 import com.example.backend.dto.CommentRequest;
 import com.example.backend.entity.Comment;
+import com.example.backend.entity.Community;
+import com.example.backend.entity.CommunityMember;
 import com.example.backend.entity.Decision;
 import com.example.backend.entity.Role;
 import com.example.backend.entity.User;
 import com.example.backend.exception.ResourceNotFoundException;
 import com.example.backend.exception.UnauthorizedActionException;
 import com.example.backend.repository.CommentRepository;
+import com.example.backend.repository.CommunityMemberRepository;
 import com.example.backend.repository.DecisionRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -24,7 +29,28 @@ public class CommentService {
 
     private final CommentRepository commentRepository;
     private final DecisionRepository decisionRepository;
+    private final CommunityMemberRepository communityMemberRepository;
     private final NotificationService notificationService;
+
+    public boolean isModeratorOrOwnerOrAdmin(Decision decision, User user) {
+        if (user == null) return false;
+        if (user.getRole() == Role.ADMIN) return true;
+        if (decision.getUser() != null && decision.getUser().getId().equals(user.getId())) {
+            return true;
+        }
+        if (decision.getCommunity() != null) {
+            Community community = decision.getCommunity();
+            if (community.getModerator() != null && community.getModerator().getId().equals(user.getId())) {
+                return true;
+            }
+            Optional<CommunityMember> memberOpt = 
+                    communityMemberRepository.findByCommunityIdAndUserId(community.getId(), user.getId());
+            if (memberOpt.isPresent() && "MODERATOR".equalsIgnoreCase(memberOpt.get().getMemberRole())) {
+                return true;
+            }
+        }
+        return false;
+    }
     
     @Transactional
     public CommentDto createComment(Long decisionId,
@@ -35,10 +61,18 @@ public class CommentService {
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Decision not found."));
 
+        if (Boolean.TRUE.equals(decision.getIsDiscussionLocked())) {
+            if (!isModeratorOrOwnerOrAdmin(decision, user)) {
+                throw new UnauthorizedActionException("Discussions are locked for this decision. Only moderators and admins can post.");
+            }
+        }
+
         Comment comment = Comment.builder()
                 .decision(decision)
                 .user(user)
                 .commentText(request.getCommentText())
+                .isPinned(false)
+                .isHidden(false)
                 .parentComment(null)
                 .createdAt(java.time.LocalDateTime.now())
                 .updatedAt(java.time.LocalDateTime.now())
@@ -56,19 +90,19 @@ public class CommentService {
     }
     
     private CommentDto convertToDto(Comment comment) {
-
         return CommentDto.builder()
                 .commentId(comment.getCommentId())
                 .userId(comment.getUser().getId())
                 .username(comment.getUser().getActualUsername())
                 .commentText(comment.getCommentText())
+                .isPinned(Boolean.TRUE.equals(comment.getIsPinned()))
+                .isHidden(Boolean.TRUE.equals(comment.getIsHidden()))
                 .createdAt(comment.getCreatedAt())
                 .replies(List.of())
                 .build();
     }
     
     private CommentDto convertToDtoWithReplies(Comment comment) {
-
         List<CommentDto> replies = commentRepository
                 .findByParentCommentCommentIdOrderByCreatedAtAsc(comment.getCommentId())
                 .stream()
@@ -80,11 +114,12 @@ public class CommentService {
                 .userId(comment.getUser().getId())
                 .username(comment.getUser().getActualUsername())
                 .commentText(comment.getCommentText())
+                .isPinned(Boolean.TRUE.equals(comment.getIsPinned()))
+                .isHidden(Boolean.TRUE.equals(comment.getIsHidden()))
                 .createdAt(comment.getCreatedAt())
                 .replies(replies)
                 .build();
     }
-    
     
     @Transactional
     public CommentDto replyToComment(Long commentId,
@@ -95,11 +130,20 @@ public class CommentService {
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Comment not found."));
 
+        Decision decision = parentComment.getDecision();
+        if (Boolean.TRUE.equals(decision.getIsDiscussionLocked())) {
+            if (!isModeratorOrOwnerOrAdmin(decision, user)) {
+                throw new UnauthorizedActionException("Discussions are locked for this decision. Only moderators and admins can post.");
+            }
+        }
+
         Comment reply = Comment.builder()
-                .decision(parentComment.getDecision())
+                .decision(decision)
                 .user(user)
                 .parentComment(parentComment)
                 .commentText(request.getCommentText())
+                .isPinned(false)
+                .isHidden(false)
                 .createdAt(java.time.LocalDateTime.now())
                 .updatedAt(java.time.LocalDateTime.now())
                 .build();
@@ -125,9 +169,48 @@ public class CommentService {
         List<Comment> comments = commentRepository
                 .findByDecisionIdAndParentCommentIsNullOrderByCreatedAtAsc(decisionId);
 
+        // Sort pinned comments first, then by creation date ascending
         return comments.stream()
+                .sorted(Comparator.comparing((Comment c) -> Boolean.TRUE.equals(c.getIsPinned()) ? 0 : 1)
+                        .thenComparing(Comment::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder())))
                 .map(this::convertToDtoWithReplies)
                 .toList();
+    }
+
+    @Transactional
+    public CommentDto togglePinComment(Long commentId, User user) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Comment not found."));
+
+        Decision decision = comment.getDecision();
+        if (!isModeratorOrOwnerOrAdmin(decision, user)) {
+            throw new UnauthorizedActionException("Only community moderators, decision owners, or admins can pin comments.");
+        }
+
+        boolean currentPinned = Boolean.TRUE.equals(comment.getIsPinned());
+        comment.setIsPinned(!currentPinned);
+        comment = commentRepository.save(comment);
+
+        return convertToDtoWithReplies(comment);
+    }
+
+    @Transactional
+    public CommentDto toggleHideComment(Long commentId, User user) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Comment not found."));
+
+        Decision decision = comment.getDecision();
+        if (!isModeratorOrOwnerOrAdmin(decision, user)) {
+            throw new UnauthorizedActionException("Only community moderators, decision owners, or admins can hide comments.");
+        }
+
+        boolean currentHidden = Boolean.TRUE.equals(comment.getIsHidden());
+        comment.setIsHidden(!currentHidden);
+        comment = commentRepository.save(comment);
+
+        return convertToDtoWithReplies(comment);
     }
     
     @Transactional
@@ -166,16 +249,15 @@ public class CommentService {
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Comment not found."));
 
-        boolean isOwner = comment.getUser().getId().equals(user.getId());
+        boolean isAuthor = comment.getUser().getId().equals(user.getId());
+        boolean isModOrAdminOrOwner = isModeratorOrOwnerOrAdmin(comment.getDecision(), user);
 
-        boolean isAdmin = user.getRole() == Role.ADMIN;
-
-        if (!isOwner && !isAdmin) {
+        if (!isAuthor && !isModOrAdminOrOwner) {
             throw new UnauthorizedActionException(
                     "You are not authorized to delete this comment.");
         }
 
-     // Notify before deleting
+        // Notify before deleting
         notificationService.createCommentDeletedNotification(
                 comment.getDecision(),
                 user,

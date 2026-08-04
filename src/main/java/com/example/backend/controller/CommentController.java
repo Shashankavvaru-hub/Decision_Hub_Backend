@@ -106,4 +106,56 @@ public class CommentController {
         );
     }
 
+    @PutMapping("/api/comments/{commentId}/pin")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    public ResponseEntity<ApiResponse<CommentDto>> togglePinComment(
+            @PathVariable Long commentId,
+            @AuthenticationPrincipal User user) {
+
+        CommentDto dto = commentService.togglePinComment(commentId, user);
+        String msg = Boolean.TRUE.equals(dto.getIsPinned()) ? "Comment pinned successfully." : "Comment unpinned successfully.";
+
+        return ResponseEntity.ok(
+                ApiResponse.<CommentDto>builder()
+                        .success(true)
+                        .message(msg)
+                        .data(dto)
+                        .build()
+        );
+    }
+
+    @PatchMapping("/api/comments/{commentId}/pin")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    public ResponseEntity<ApiResponse<CommentDto>> togglePinCommentPatch(
+            @PathVariable Long commentId,
+            @AuthenticationPrincipal User user) {
+        return togglePinComment(commentId, user);
+    }
+
+    @PutMapping("/api/comments/{commentId}/hide")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    public ResponseEntity<ApiResponse<CommentDto>> toggleHideComment(
+            @PathVariable Long commentId,
+            @AuthenticationPrincipal User user) {
+
+        CommentDto dto = commentService.toggleHideComment(commentId, user);
+        String msg = Boolean.TRUE.equals(dto.getIsHidden()) ? "Comment hidden successfully." : "Comment unhidden successfully.";
+
+        return ResponseEntity.ok(
+                ApiResponse.<CommentDto>builder()
+                        .success(true)
+                        .message(msg)
+                        .data(dto)
+                        .build()
+        );
+    }
+
+    @PatchMapping("/api/comments/{commentId}/hide")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    public ResponseEntity<ApiResponse<CommentDto>> toggleHideCommentPatch(
+            @PathVariable Long commentId,
+            @AuthenticationPrincipal User user) {
+        return toggleHideComment(commentId, user);
+    }
+
 }
