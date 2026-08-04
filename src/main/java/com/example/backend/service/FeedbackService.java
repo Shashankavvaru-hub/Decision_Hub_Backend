@@ -13,6 +13,7 @@ import com.example.backend.repository.FeedbackRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.example.backend.repository.UserRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -23,6 +24,8 @@ import java.util.Map;
 public class FeedbackService {
 
     private final FeedbackRepository feedbackRepository;
+    private final NotificationService notificationService;
+    private final UserRepository userRepository;
 
     @Transactional
     public FeedbackDto createFeedback(FeedbackRequest request, User user) {
@@ -38,7 +41,19 @@ public class FeedbackService {
                 .build();
 
         feedback = feedbackRepository.save(feedback);
-        return convertToDto(feedback);
+
+     // Notify all admins
+     List<User> admins = userRepository.findByRole(Role.ADMIN);
+
+     for (User admin : admins) {
+         notificationService.createFeedbackCreatedNotification(
+                 admin,
+                 user,
+                 feedback.getId()
+         );
+     }
+
+     return convertToDto(feedback);
     }
 
     @Transactional(readOnly = true)
@@ -69,7 +84,15 @@ public class FeedbackService {
         feedback.setAdminRepliedAt(LocalDateTime.now());
 
         feedback = feedbackRepository.save(feedback);
-        return convertToDto(feedback);
+
+     // Notify the feedback owner
+     notificationService.createFeedbackRepliedNotification(
+             feedback.getUser(),
+             admin,
+             feedback.getId()
+     );
+
+     return convertToDto(feedback);
     }
 
     @Transactional
@@ -100,8 +123,36 @@ public class FeedbackService {
             throw new UnauthorizedActionException("You are not authorized to delete this feedback.");
         }
 
-        feedback.setIsDeleted(true);
-        feedbackRepository.save(feedback);
+//        boolean isAdmin = user.getRole() == Role.ADMIN;
+
+     // Notify before marking as deleted
+     if (isAdmin) {
+
+         // Admin deleted -> notify feedback owner
+         notificationService.createFeedbackDeletedNotification(
+                 feedback.getUser(),
+                 user,
+                 feedback.getId(),
+                 true
+         );
+
+     } else {
+
+         // User deleted -> notify all admins
+         List<User> admins = userRepository.findByRole(Role.ADMIN);
+
+         for (User admin : admins) {
+             notificationService.createFeedbackDeletedNotification(
+                     admin,
+                     user,
+                     feedback.getId(),
+                     false
+             );
+         }
+     }
+
+     feedback.setIsDeleted(true);
+     feedbackRepository.save(feedback);
     }
 
     @Transactional
@@ -120,6 +171,15 @@ public class FeedbackService {
 
         feedback.setStatus(newStatus.trim().toUpperCase());
         feedback = feedbackRepository.save(feedback);
+
+        // Notify the feedback owner
+        notificationService.createFeedbackStatusUpdatedNotification(
+                feedback.getUser(),
+                admin,
+                feedback.getStatus(),
+                feedback.getId()
+        );
+
         return convertToDto(feedback);
     }
 

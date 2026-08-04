@@ -30,5 +30,17 @@ public enum NotificationType {
     // Admin Notifications
     COMMUNITY_CREATED,
     DECISION_CREATED,
-    MODERATOR_ACTION
+    MODERATOR_ACTION,
+    
+    //Feedback Notifications
+    FEEDBACK_CREATED,
+    FEEDBACK_REPLIED,
+    FEEDBACK_STATUS_UPDATED,
+    FEEDBACK_DELETED,
+    
+ // Broadcast Notifications
+    BROADCAST,
+    
+    // Moderation Notifications
+    WARNING
 }

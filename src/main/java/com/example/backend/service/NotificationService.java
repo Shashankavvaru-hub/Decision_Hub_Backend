@@ -506,6 +506,84 @@ public class NotificationService {
         );
     }
     
+    @Transactional
+    public void createFeedbackCreatedNotification(User admin,
+                                                  User sender,
+                                                  Long feedbackId) {
+
+        if (admin.getId().equals(sender.getId())) {
+            return;
+        }
+
+        createNotification(
+                admin,
+                sender,
+                NotificationType.FEEDBACK_CREATED,
+                "New Feedback Received",
+                sender.getActualUsername() + " submitted new feedback.",
+                null,
+                null,
+                feedbackId
+        );
+    }
+    
+    @Transactional
+    public void createFeedbackRepliedNotification(User receiver,
+                                                  User admin,
+                                                  Long feedbackId) {
+
+        createNotification(
+                receiver,
+                admin,
+                NotificationType.FEEDBACK_REPLIED,
+                "Feedback Replied",
+                "An administrator replied to your feedback.",
+                null,
+                null,
+                feedbackId
+        );
+    }
+    
+    @Transactional
+    public void createFeedbackStatusUpdatedNotification(User receiver,
+                                                        User admin,
+                                                        String status,
+                                                        Long feedbackId) {
+
+        createNotification(
+                receiver,
+                admin,
+                NotificationType.FEEDBACK_STATUS_UPDATED,
+                "Feedback Status Updated",
+                "Your feedback status was updated to " + status + ".",
+                null,
+                null,
+                feedbackId
+        );
+    }
+    
+    @Transactional
+    public void createFeedbackDeletedNotification(User receiver,
+                                                  User sender,
+                                                  Long feedbackId,
+                                                  boolean deletedByAdmin) {
+
+        String message = deletedByAdmin
+                ? "Your feedback has been deleted by an administrator."
+                : sender.getActualUsername() + " deleted their feedback.";
+
+        createNotification(
+                receiver,
+                sender,
+                NotificationType.FEEDBACK_DELETED,
+                "Feedback Deleted",
+                message,
+                null,
+                null,
+                feedbackId
+        );
+    }
+    
 
     /**
      * Entity → DTO
