@@ -1,4 +1,5 @@
 package com.example.backend.entity;
+
 public enum NotificationType {
 
     // Decision Interaction Notifications
@@ -24,23 +25,24 @@ public enum NotificationType {
     // Decision Notifications
     DECISION_UPDATED,
 
-    // Legacy / Future (currently unused)
+    // Legacy / Future
     INVITATION,
 
     // Admin Notifications
     COMMUNITY_CREATED,
     DECISION_CREATED,
     MODERATOR_ACTION,
-    
-    //Feedback Notifications
+
+    // Feedback Notifications
     FEEDBACK_CREATED,
     FEEDBACK_REPLIED,
     FEEDBACK_STATUS_UPDATED,
     FEEDBACK_DELETED,
-    
- // Broadcast Notifications
+
+    // Broadcast / Announcement Notifications
     BROADCAST,
-    
+    ANNOUNCEMENT,
+
     // Moderation Notifications
     WARNING
 }

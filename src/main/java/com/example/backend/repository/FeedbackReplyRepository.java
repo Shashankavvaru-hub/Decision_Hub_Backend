@@ -10,4 +10,7 @@ import java.util.List;
 public interface FeedbackReplyRepository extends JpaRepository<FeedbackReply, Long> {
     List<FeedbackReply> findByFeedbackIdOrderByCreatedAtAsc(Long feedbackId);
     void deleteByFeedbackId(Long feedbackId);
+    void deleteByUserId(Long userId);
+    void deleteByFeedbackIdIn(java.util.List<Long> feedbackIds);
 }
+

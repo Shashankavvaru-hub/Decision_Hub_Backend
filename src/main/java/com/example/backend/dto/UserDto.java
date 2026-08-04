@@ -19,6 +19,7 @@ public class UserDto {
     private String fullName;
     private String profilePicture;
     private Role role;
+    private String status;
     private String interests;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

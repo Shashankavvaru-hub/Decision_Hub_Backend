@@ -48,6 +48,10 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private Role role;
 
+    @Column(name = "status")
+    @Builder.Default
+    private String status = "ACTIVE";
+
     @Column(columnDefinition = "TEXT")
     private String interests;
 
@@ -56,6 +60,10 @@ public class User implements UserDetails {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    public String getStatus() {
+        return status != null ? status : "ACTIVE";
+    }
 
     // --- UserDetails Implementation ---
 
