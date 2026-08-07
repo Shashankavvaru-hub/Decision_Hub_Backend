@@ -46,5 +46,21 @@ public class SchemaConstraintFixer {
         } catch (Exception e) {
             log.warn("Could not ensure is_pinned / is_hidden columns on comments: {}", e.getMessage());
         }
+
+        try {
+            jdbcTemplate.execute("ALTER TABLE notifications ALTER COLUMN message TYPE TEXT");
+            jdbcTemplate.execute("ALTER TABLE notifications ALTER COLUMN title TYPE VARCHAR(255)");
+        } catch (Exception e) {
+            log.warn("Could not alter notifications columns: {}", e.getMessage());
+        }
+
+        try {
+            jdbcTemplate.execute("ALTER TABLE moderation_reports ADD COLUMN IF NOT EXISTS community_id BIGINT");
+            jdbcTemplate.execute("ALTER TABLE moderation_reports ADD COLUMN IF NOT EXISTS decision_id BIGINT");
+            jdbcTemplate.execute("ALTER TABLE moderation_reports DROP CONSTRAINT IF EXISTS moderation_reports_target_type_check");
+            jdbcTemplate.execute("ALTER TABLE moderation_reports DROP CONSTRAINT IF EXISTS moderation_reports_status_check");
+        } catch (Exception e) {
+            log.warn("Could not ensure moderation_reports columns: {}", e.getMessage());
+        }
     }
 }

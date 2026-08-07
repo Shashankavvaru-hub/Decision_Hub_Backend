@@ -32,6 +32,14 @@ public class Report {
     private String targetTitle;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "community_id")
+    private Community community;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "decision_id")
+    private Decision decision;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reported_user_id")
     private User reportedUser;
 

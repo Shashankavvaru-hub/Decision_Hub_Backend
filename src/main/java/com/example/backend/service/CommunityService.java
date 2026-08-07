@@ -25,9 +25,9 @@ import com.example.backend.repository.CommunityJoinRequestRepository;
 import com.example.backend.repository.CommunityMemberRepository;
 import com.example.backend.repository.CommunityRepository;
 import com.example.backend.repository.DecisionRepository;
-import com.example.backend.repository.UserRepository;
 import com.example.backend.repository.NotificationRepository;
-
+import com.example.backend.repository.ReportRepository;
+import com.example.backend.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -43,6 +43,7 @@ public class CommunityService {
     private final NotificationRepository notificationRepository;
     private final DecisionRepository decisionRepository;
     private final DecisionService decisionService;
+    private final ReportRepository reportRepository;
     
 
     @Transactional
@@ -381,6 +382,7 @@ public class CommunityService {
         communityMemberRepository.deleteByCommunityId(communityId);
         
         notificationRepository.clearCommunityReference(communityId);
+        reportRepository.clearCommunityReference(communityId);
 
         // Delete the community
         communityRepository.delete(community);

@@ -63,7 +63,7 @@ public class DecisionController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('USER')")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
     public ResponseEntity<ApiResponse<DecisionDto>> getDecisionById(
             @PathVariable Long id,
             @AuthenticationPrincipal User user) {

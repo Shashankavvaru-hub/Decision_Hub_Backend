@@ -31,6 +31,7 @@ import com.example.backend.repository.CommunityRepository;
 import com.example.backend.repository.DecisionInvitationRepository;
 import com.example.backend.repository.DecisionRepository;
 import com.example.backend.repository.NotificationRepository;
+import com.example.backend.repository.ReportRepository;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.repository.VoteRepository;
 
@@ -46,7 +47,7 @@ public class DecisionService {
     private final UserRepository userRepository;
     private final DecisionInvitationRepository invitationRepository;
     private final NotificationRepository notificationRepository;
-    
+    private final ReportRepository reportRepository;
 
     public DecisionService(DecisionRepository decisionRepository,
             CommunityRepository communityRepository,
@@ -56,17 +57,19 @@ public class DecisionService {
             NotificationService notificationService,
             UserRepository userRepository,
             DecisionInvitationRepository invitationRepository,
-            NotificationRepository notificationRepository)  {
+            NotificationRepository notificationRepository,
+            ReportRepository reportRepository)  {
     	this.userRepository = userRepository;
-this.decisionRepository = decisionRepository;
-this.communityRepository = communityRepository;
-this.communityMemberRepository = communityMemberRepository;
-this.voteRepository = voteRepository;
-this.commentRepository = commentRepository;
-this.notificationService = notificationService;
-this.invitationRepository = invitationRepository;
-this.notificationRepository = notificationRepository;
-}
+        this.decisionRepository = decisionRepository;
+        this.communityRepository = communityRepository;
+        this.communityMemberRepository = communityMemberRepository;
+        this.voteRepository = voteRepository;
+        this.commentRepository = commentRepository;
+        this.notificationService = notificationService;
+        this.invitationRepository = invitationRepository;
+        this.notificationRepository = notificationRepository;
+        this.reportRepository = reportRepository;
+    }
 
     @Transactional
     public DecisionDto createDecision(
@@ -241,6 +244,9 @@ this.notificationRepository = notificationRepository;
 
         // Clear decision references in notifications
         notificationRepository.clearDecisionReference(id);
+
+        // Clear decision references in moderation reports
+        reportRepository.clearDecisionReference(id);
 
         decisionRepository.delete(decision);
     }

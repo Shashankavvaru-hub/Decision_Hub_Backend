@@ -17,6 +17,12 @@ public class ReportResponseDto {
     private Long targetId;
     private String targetTitle;
 
+    private Long communityId;
+    private String communityName;
+
+    private Long decisionId;
+    private String decisionTitle;
+
     private Long reporterId;
     private String reporterUsername;
     private String reporterEmail;

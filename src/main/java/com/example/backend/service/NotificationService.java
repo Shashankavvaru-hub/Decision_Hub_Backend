@@ -202,6 +202,9 @@ public class NotificationService {
     public void createCommentDeletedNotification(Decision decision,
                                                  User user,
                                                  Long commentId) {
+        if (decision == null || decision.getUser() == null || user == null) {
+            return;
+        }
 
         User decisionOwner = decision.getUser();
 

@@ -1,6 +1,7 @@
 package com.example.backend.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.backend.dto.ApiResponse;
@@ -22,9 +24,12 @@ import com.example.backend.dto.CommunityMemberDto;
 import com.example.backend.dto.CommunityMembershipStatusDto;
 import com.example.backend.dto.CreateCommunityRequest;
 import com.example.backend.dto.HandleJoinRequestDto;
+import com.example.backend.dto.ModerationActionRequestDto;
+import com.example.backend.dto.ReportResponseDto;
 import com.example.backend.dto.UpdateCommunityRequest;
 import com.example.backend.entity.User;
 import com.example.backend.service.CommunityService;
+import com.example.backend.service.ModerationService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +40,7 @@ import lombok.RequiredArgsConstructor;
 public class CommunityController {
 
     private final CommunityService communityService;
+    private final ModerationService moderationService;
 
     @PostMapping
     @PreAuthorize("hasRole('USER')")
@@ -183,6 +189,60 @@ public class CommunityController {
                         .success(true)
                         .message("Membership status fetched successfully.")
                         .data(status)
+                        .build()
+        );
+    }
+
+    @GetMapping("/{id}/reports")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    public ResponseEntity<ApiResponse<List<ReportResponseDto>>> getCommunityReports(
+            @PathVariable Long id,
+            @RequestParam(required = false, defaultValue = "ALL") String status,
+            @AuthenticationPrincipal User user) {
+
+        List<ReportResponseDto> reports = moderationService.getCommunityReports(id, user, status);
+        return ResponseEntity.ok(
+                ApiResponse.<List<ReportResponseDto>>builder()
+                        .success(true)
+                        .message("Community reports fetched successfully.")
+                        .data(reports)
+                        .build()
+        );
+    }
+
+    @PostMapping("/{id}/reports/{reportId}/action")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    public ResponseEntity<ApiResponse<ReportResponseDto>> executeCommunityReportAction(
+            @PathVariable Long id,
+            @PathVariable Long reportId,
+            @Valid @RequestBody ModerationActionRequestDto request,
+            @AuthenticationPrincipal User user) {
+
+        ReportResponseDto dto = moderationService.executeCommunityAction(id, reportId, request, user);
+        return ResponseEntity.ok(
+                ApiResponse.<ReportResponseDto>builder()
+                        .success(true)
+                        .message("Community moderation action executed successfully.")
+                        .data(dto)
+                        .build()
+        );
+    }
+
+    @PostMapping("/{id}/reports/{reportId}/dismiss")
+    @PreAuthorize("hasAnyRole('USER','ADMIN')")
+    public ResponseEntity<ApiResponse<ReportResponseDto>> dismissCommunityReport(
+            @PathVariable Long id,
+            @PathVariable Long reportId,
+            @RequestBody(required = false) Map<String, String> payload,
+            @AuthenticationPrincipal User user) {
+
+        String notes = payload != null ? payload.get("notes") : null;
+        ReportResponseDto dto = moderationService.dismissCommunityReport(id, reportId, user, notes);
+        return ResponseEntity.ok(
+                ApiResponse.<ReportResponseDto>builder()
+                        .success(true)
+                        .message("Community report dismissed.")
+                        .data(dto)
                         .build()
         );
     }

@@ -70,9 +70,16 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.BAD_REQUEST, "Malformed JSON request body. Please verify your JSON syntax.");
     }
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<?>> handleGeneralException(Exception ex) {
-        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred.");
+        log.error("Unhandled server exception occurred: ", ex);
+        String msg = ex.getMessage();
+        if (msg == null || msg.isBlank()) {
+            msg = ex.getClass().getSimpleName();
+        }
+        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, msg);
     }
 
     private ResponseEntity<ApiResponse<?>> buildErrorResponse(HttpStatus status, String message) {

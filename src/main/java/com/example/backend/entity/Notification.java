@@ -34,10 +34,10 @@ public class Notification {
     @Column(nullable = false)
     private NotificationType type;
 
-    @Column(nullable = false, length = 100)
+    @Column(nullable = false, length = 255)
     private String title;
 
-    @Column(nullable = false, length = 500)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String message;
 
     // Optional reference to a decision

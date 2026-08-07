@@ -19,9 +19,29 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
 
     List<Report> findAllByOrderByCreatedAtDesc();
 
+    List<Report> findByCommunityIdOrderByCreatedAtDesc(Long communityId);
+
+    List<Report> findByCommunityIdAndStatusOrderByCreatedAtDesc(Long communityId, String status);
+
+    List<Report> findByCommunityIdAndTargetTypeOrderByCreatedAtDesc(Long communityId, String targetType);
+
+    List<Report> findByCommunityIdAndTargetTypeAndStatusOrderByCreatedAtDesc(Long communityId, String targetType, String status);
+
+    long countByCommunityIdAndStatus(Long communityId, String status);
+
+    long countByCommunityIdAndTargetTypeAndStatus(Long communityId, String targetType, String status);
+
     long countByStatus(String status);
 
     @Modifying
     @Query("DELETE FROM Report r WHERE r.reporter = :user OR r.reportedUser = :user OR r.moderator = :user")
     void deleteByUserReference(@Param("user") User user);
+
+    @Modifying
+    @Query("UPDATE Report r SET r.decision = null WHERE r.decision.id = :decisionId")
+    void clearDecisionReference(@Param("decisionId") Long decisionId);
+
+    @Modifying
+    @Query("UPDATE Report r SET r.community = null WHERE r.community.id = :communityId")
+    void clearCommunityReference(@Param("communityId") Long communityId);
 }
